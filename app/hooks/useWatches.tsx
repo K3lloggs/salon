@@ -70,6 +70,7 @@ export function useWatches(searchQuery: string = "", sortOption: SortOption = nu
             dateAdded: dateAddedMillis,
             likes: data.likes ?? 0,
             warranty: data.warranty || "",
+            msrp: data.msrp || 0,
             complications: data.complications || [],
             exhibitionCaseback: data.exhibitionCaseback || false,
           } as Watch;

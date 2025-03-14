@@ -89,6 +89,7 @@ export default function DetailScreen() {
           : null,
     },
     { label: "Dial", value: watch.dial },
+    { label: "MSRP", value: watch.msrp ? `$${watch.msrp.toLocaleString()}` : null },
     { label: "Power Reserve", value: watch.powerReserve },
     { label: "Strap", value: watch.strap },
     { label: "Year", value: watch.year },
@@ -280,7 +281,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 8,
     marginVertical: -34,
   },
-  specsContainer: { marginTop: 84, paddingHorizontal: 0 },
+  specsContainer: { marginTop: 84, paddingHorizontal: 3 },
   specRow: {
     gap: 30,
     flexDirection: "row",
@@ -301,7 +302,7 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     letterSpacing: -0.2,
     flex: 1,
-    marginLeft: 32,
+    marginLeft: 30,
   },
 
   footerContainer: {

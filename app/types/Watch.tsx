@@ -18,6 +18,7 @@ export interface Watch {
   newArrival?: boolean;
   description?: string;
   sku?: string;
+  msrp?: number;
   likes?: number; // <-- Already added
 
   // New fields
