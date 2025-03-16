@@ -11,21 +11,13 @@
     "preview": {
       "distribution": "internal",
       "ios": {
-        "resourceClass": "m-medium",
-        "extraPodfileProperties": {
-          "use_modular_headers!": true,
-          "use_frameworks!": "static"
-        }
+        "resourceClass": "m-medium"
       }
     },
     "production": {
       "autoIncrement": true,
       "ios": {
-        "resourceClass": "m-medium",
-        "extraPodfileProperties": {
-          "use_modular_headers!": true,
-          "use_frameworks!": "static"
-        }
+        "resourceClass": "m-medium"
       }
     }
   },
