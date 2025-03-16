@@ -9,10 +9,24 @@
       "distribution": "internal"
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "ios": {
+        "resourceClass": "m-medium",
+        "extraPodfileProperties": {
+          "use_modular_headers!": true,
+          "use_frameworks!": "static"
+        }
+      }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "ios": {
+        "resourceClass": "m-medium",
+        "extraPodfileProperties": {
+          "use_modular_headers!": true,
+          "use_frameworks!": "static"
+        }
+      }
     }
   },
   "submit": {

@@ -1,10 +1,9 @@
-// app.config.js
 import 'dotenv/config';
 
 export default {
   expo: {
-    name: 'watch_salon', // Replace with your app's name
-    slug: 'salon', // Replace with your app's slug
+    name: 'watch_salon',
+    slug: 'salon',
     extra: {
       FIREBASE_API_KEY: process.env.FIREBASE_API_KEY,
       FIREBASE_AUTH_DOMAIN: process.env.FIREBASE_AUTH_DOMAIN,
@@ -23,7 +22,21 @@ export default {
         ITSAppUsesNonExemptEncryption: false
       }
     },
-    plugins: ['expo-router'],
+    plugins: [
+      'expo-router',
+      [
+        '@react-native-firebase/app',
+        {
+          ios: {
+            googleServicesFile: "./GoogleService-Info.plist"
+          },
+          android: {
+            googleServicesFile: "./google-services.json"
+          }
+        }
+      ],
+      '@react-native-firebase/auth'
+    ],
     owner: 'itsabike'
   }
 };
