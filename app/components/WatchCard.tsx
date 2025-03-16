@@ -89,7 +89,7 @@ const WatchCardComponent = ({ watch, disableNavigation = false }: WatchCardProps
             windowSize={5} // Increase window size for smoother loading
             getItemLayout={(data, index) => (
               // Pre-calculate item dimensions to avoid layout shifts
-              {length: cardWidth || 400, offset: (cardWidth || 400) * index, index}
+              { length: cardWidth || 400, offset: (cardWidth || 400) * index, index }
             )}
           />
 
