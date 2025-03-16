@@ -23,17 +23,10 @@ export default {
                 ITSAppUsesNonExemptEncryption: false
             }
         },
-        "plugins": [
-            "@react-native-firebase/app",
-            [
-                "expo-build-properties",
-                {
-                    "ios": {
-                        "useFrameworks": "static"
-                    }
-                }
-            ]
-        ]
+        plugins: ['expo-router',
+         'expo-build-properties'
+        ],
 
+        owner: 'itsabike'
     }
-}
+};
