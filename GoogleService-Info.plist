@@ -9,7 +9,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.shreve.salon</string>
+	<string>com.itsabike.salon</string>
 	<key>PROJECT_ID</key>
 	<string>salon-5c0e1</string>
 	<key>STORAGE_BUCKET</key>
@@ -25,6 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:347061878586:ios:07de9bb42e1c5d907a1a03</string>
+	<string>1:347061878586:ios:adf4fb2d4f8353967a1a03</string>
 </dict>
-</plist>
+</plist
