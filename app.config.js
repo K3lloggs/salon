@@ -5,6 +5,7 @@ export default {
         name: 'Watch Salon',
         slug: 'salon',
         icon: "./assets/images/logo.jpg",
+        version: "0.0.1",  // Version number
         extra: {
             FIREBASE_API_KEY: process.env.FIREBASE_API_KEY,
             FIREBASE_AUTH_DOMAIN: process.env.FIREBASE_AUTH_DOMAIN,
@@ -13,6 +14,7 @@ export default {
             FIREBASE_MESSAGING_SENDER_ID: process.env.FIREBASE_MESSAGING_SENDER_ID,
             FIREBASE_APP_ID: process.env.FIREBASE_APP_ID,
             FIREBASE_MEASUREMENT_ID: process.env.FIREBASE_MEASUREMENT_ID,
+            STRIPE_PUBLISHABLE_KEY: 'pk_test_your_actual_test_key_here', // Replace with your test key
             eas: {
                 projectId: '196d8bb9-d7b4-4c0d-91b7-00858fb9ff80'
             }
@@ -20,7 +22,8 @@ export default {
         ios: {
             bundleIdentifier: 'com.itsabike.salon',
             infoPlist: {
-                ITSAppUsesNonExemptEncryption: false
+                ITSAppUsesNonExemptEncryption: false,
+                NSCameraUsageDescription: "This app uses the camera to scan payment cards."
             }
         },
         plugins: [
@@ -32,6 +35,14 @@ export default {
                         useModularHeaders: true,
                         useFrameworks: "static"
                     }
+                }
+            ],
+            [
+                "@stripe/stripe-react-native",
+                {
+                    "merchantIdentifier": "",  // Leave empty if not using Apple Pay
+                    "enableGooglePay": false,
+                    "urlScheme": "watchsalon" // For returnURL in your Stripe component
                 }
             ]
         ],
