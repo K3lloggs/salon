@@ -4,11 +4,15 @@ import { FixedHeader } from "../components/FixedHeader";
 import { WatchCard } from "../components/WatchCard";
 import { FilterDropdown } from "../components/FilterButton";
 import { useWatches } from "../hooks/useWatches";
-import { useSortContext } from "../context/SortContext";
+import { useSortContext, SortOption } from "../context/SortContext";
 import { Watch } from "../types/Watch";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Estimate item height for more accurate getItemLayout function
 const ITEM_HEIGHT = 420; // Adjusted based on card dimensions and margins
+
+// Key for storing app boot status
+const APP_BOOT_KEY = 'watchSalonAppBooted';
 
 export default function AllScreen() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -27,9 +31,39 @@ export default function AllScreen() {
       return [...watches].sort((a, b) => b.price - a.price);
     } else if (sortOption === 'lowToHigh') {
       return [...watches].sort((a, b) => a.price - b.price);
+    } else if (sortOption === 'random') {
+      // Randomize the order
+      return [...watches].sort(() => Math.random() - 0.5);
     }
     return watches;
   }, [watches, sortOption]);
+
+  // Check if it's a fresh app boot and set random sort on first launch
+  useEffect(() => {
+    const checkAppBoot = async () => {
+      try {
+        const wasBooted = await AsyncStorage.getItem(APP_BOOT_KEY);
+        
+        if (!wasBooted) {
+          // First boot in this session - set random sort
+          setSortOption('random');
+          
+          // Mark that the app has been booted in this session
+          await AsyncStorage.setItem(APP_BOOT_KEY, 'true');
+        }
+      } catch (e) {
+        console.error('Error checking app boot status:', e);
+      }
+    };
+
+    checkAppBoot();
+
+    // Clear the boot flag when the component is unmounted (app closed)
+    return () => {
+      AsyncStorage.removeItem(APP_BOOT_KEY)
+        .catch(e => console.error('Error clearing app boot status:', e));
+    };
+  }, [setSortOption]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -46,7 +80,7 @@ export default function AllScreen() {
     setShowFilterDropdown(prev => !prev);
   }, []);
 
-  const handleFilterSelect = useCallback((option: "lowToHigh" | "highToLow" | null) => {
+  const handleFilterSelect = useCallback((option: SortOption) => {
     setSortOption(option);
     setShowFilterDropdown(false);
     scrollToTop();

@@ -1,7 +1,6 @@
-// app/context/SortContext.tsx
 import React, { createContext, useState, useContext } from 'react';
 
-export type SortOption = 'highToLow' | 'lowToHigh' | null;
+export type SortOption = 'highToLow' | 'lowToHigh' | 'random' | null;
 
 interface SortContextType {
   sortOption: SortOption;

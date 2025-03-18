@@ -48,19 +48,34 @@ export default function MoreScreen() {
       );
   };
 
+  // Function to handle YouTube linking
+  const handleYoutubePress = () => {
+    // Attempt to open the YouTube app; if not available, fallback to the web URL.
+    const youtubeAppUrl = 'youtube://www.youtube.com/@shrevecrumplow';
+    const youtubeWebUrl = 'https://www.youtube.com/@shrevecrumplow';
+    Linking.canOpenURL(youtubeAppUrl)
+      .then((supported) => {
+        if (supported) {
+          Linking.openURL(youtubeAppUrl);
+        } else {
+          Linking.openURL(youtubeWebUrl);
+        }
+      })
+      .catch((err) =>
+        console.error('An error occurred while trying to open YouTube', err)
+      );
+  };
+
   return (
     <ScrollView style={styles.container}>
       <FixedHeader />
-
-      {/* Primary Categories */}
-      
 
       {/* Information */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Information</Text>
         <Link href="/about" asChild>
           <TouchableOpacity style={styles.menuItem}>
-            <Text style={styles.menuText}>About Us</Text>
+            <Text style={styles.menuText}>About</Text>
             <Ionicons name="chevron-forward" size={20} color="#002d4e" />
           </TouchableOpacity>
         </Link>
@@ -81,6 +96,13 @@ export default function MoreScreen() {
           onPress={handleFacebookPress}
         >
           <Text style={styles.menuText}>Facebook</Text>
+          <Ionicons name="chevron-forward" size={20} color="#002d4e" />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={handleYoutubePress}
+        >
+          <Text style={styles.menuText}>YouTube</Text>
           <Ionicons name="chevron-forward" size={20} color="#002d4e" />
         </TouchableOpacity>
       </View>
