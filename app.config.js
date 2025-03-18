@@ -14,7 +14,7 @@ export default {
             FIREBASE_MESSAGING_SENDER_ID: process.env.FIREBASE_MESSAGING_SENDER_ID,
             FIREBASE_APP_ID: process.env.FIREBASE_APP_ID,
             FIREBASE_MEASUREMENT_ID: process.env.FIREBASE_MEASUREMENT_ID,
-            STRIPE_PUBLISHABLE_KEY: 'pk_test_your_actual_test_key_here', // Replace with your test key
+            STRIPE_PUBLISHABLE_KEY: "sk_test_51KOAMQDYuNaEOlQ2cMftzqDaJJVqIl6T8wLv0v84WJwfWx2JVojRulGtQf7nlEYSE0jsmVspizrMpBeY12BYlpWv004f15rpTd",  // You'll need to replace this with your actual complete secret key
             eas: {
                 projectId: '196d8bb9-d7b4-4c0d-91b7-00858fb9ff80'
             }

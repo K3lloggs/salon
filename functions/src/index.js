@@ -11,7 +11,7 @@ if (!admin.apps.length) {
   admin.initializeApp();
 }
 
-// Initialize Stripe with production key
+
 const stripe = new Stripe(
   "sk_test_51KOAMQDYuNaEOlQ2cMftzqDaJJVqIl6T8wLv0v84WJwfWx2JVojRulGtQf7nlEYSE0jsmVspizrMpBeY12BYlpWv004f15rpTd",  // You'll need to replace this with your actual complete secret key
   {
