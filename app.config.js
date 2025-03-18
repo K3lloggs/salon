@@ -4,7 +4,7 @@ export default {
     expo: {
         name: 'Watch Salon',
         slug: 'salon',
-        icon: "./assets/images/App_Icon.jpg",
+        icon: "./assets/images/logo.jpg",
         extra: {
             FIREBASE_API_KEY: process.env.FIREBASE_API_KEY,
             FIREBASE_AUTH_DOMAIN: process.env.FIREBASE_AUTH_DOMAIN,
