@@ -5,7 +5,7 @@ export default {
         name: 'Watch Salon',
         slug: 'salon',
         icon: "./assets/images/logo.jpg",
-        version: "0.0.1",  // Version number
+        version: "1.0.1",  // Version number
         extra: {
             FIREBASE_API_KEY: process.env.FIREBASE_API_KEY,
             FIREBASE_AUTH_DOMAIN: process.env.FIREBASE_AUTH_DOMAIN,
