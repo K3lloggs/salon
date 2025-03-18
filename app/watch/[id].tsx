@@ -1,6 +1,6 @@
 // app/watch/[id].tsx
 
-import React from "react";
+import React, { useState } from "react";
 import {
   SafeAreaView,
   ScrollView,
@@ -8,7 +8,7 @@ import {
   Text,
   StyleSheet,
   Dimensions,
-  TouchableOpacity,
+  Pressable, // Use Pressable instead of TouchableOpacity
   ActivityIndicator,
 } from "react-native";
 import { BlurView } from "expo-blur";
@@ -20,6 +20,11 @@ import { FixedHeader } from "../components/FixedHeader";
 import { StockBadge } from "../components/StockBadge";
 import { LikeList } from "../components/LikeList";
 import { useWatches } from "../hooks/useWatches";
+import { StripeProvider } from "@stripe/stripe-react-native";
+import StripeCheckout from "../components/StripeCheckout";
+
+// Stripe publishable key
+const STRIPE_PUBLISHABLE_KEY = "pk_test_51KOAMQDYuNaEOlQ2h7MW9gJ2D5TqDVRaP6bHYjsKY3UrTCrnCSVpILWzJvWiw33EhrouU4UObAxectGVxcnTbwsg001yIaHp9V";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -42,6 +47,7 @@ export default function DetailScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { watches, loading } = useWatches();
+  const [purchaseCompleted, setPurchaseCompleted] = useState(false);
   
   // Always show loading until watches are fully loaded
   if (loading || !watches || watches.length === 0) {
@@ -75,6 +81,12 @@ export default function DetailScreen() {
       </SafeAreaView>
     );
   }
+
+  // Handle successful purchase
+  const handlePurchaseSuccess = () => {
+    setPurchaseCompleted(true);
+    // Here you could update the watch status in Firestore
+  };
 
   // Specification entries
   const specEntries = [
@@ -114,83 +126,96 @@ export default function DetailScreen() {
   ];
 
   return (
-    <SafeAreaView style={styles.container}>
-      <FixedHeader showBackButton={true} watch={watch} />
+    <StripeProvider
+      publishableKey={STRIPE_PUBLISHABLE_KEY}
+      merchantIdentifier="merchant.com.watchsalon" // Only needed for Apple Pay
+    >
+      <SafeAreaView style={styles.container}>
+        <FixedHeader showBackButton={true} watch={watch} />
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <SecondaryCard watch={watch} />
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <SecondaryCard watch={watch} />
 
-        <BlurView intensity={40} tint="light" style={styles.detailsPanel}>
-          {/* Top Text Section with extra spacing */}
-          <View style={styles.headerSection}>
-            <Text style={styles.brand}>{watch.brand}</Text>
-            <Text style={styles.model}>{watch.model}</Text>
-            <View style={styles.infoContainer}>
-              {watch.referenceNumber && (
-                <Text style={styles.referenceNumber}>
-                  Ref. {watch.referenceNumber}
-                </Text>
-              )}
-              {watch.sku && (
-                <Text style={styles.referenceNumber}>
-                  SKU: {watch.sku}
-                </Text>
-              )}
-            </View>
-            <View style={styles.stockPriceContainer}>
-              <View style={styles.stockBadgeWrapper}>
-                <StockBadge />
+          <BlurView intensity={40} tint="light" style={styles.detailsPanel}>
+            {/* Top Text Section with extra spacing */}
+            <View style={styles.headerSection}>
+              <Text style={styles.brand}>{watch.brand}</Text>
+              <Text style={styles.model}>{watch.model}</Text>
+              <View style={styles.infoContainer}>
+                {watch.referenceNumber && (
+                  <Text style={styles.referenceNumber}>
+                    Ref. {watch.referenceNumber}
+                  </Text>
+                )}
+                {watch.sku && (
+                  <Text style={styles.referenceNumber}>
+                    SKU: {watch.sku}
+                  </Text>
+                )}
               </View>
-              <View style={styles.priceContainer}>
-                <LikeList watchId={watch.id} initialLikes={watch.likes || 0} />
-                <Text style={styles.price}>
-                  ${watch.price.toLocaleString()}
-                </Text>
+              <View style={styles.stockPriceContainer}>
+                <View style={styles.stockBadgeWrapper}>
+                  <StockBadge />
+                </View>
+                <View style={styles.priceContainer}>
+                  <LikeList watchId={watch.id} initialLikes={watch.likes || 0} />
+                  <Text style={styles.price}>
+                    ${watch.price.toLocaleString()}
+                  </Text>
+                </View>
               </View>
             </View>
-          </View>
 
-          {/* Horizontal Row for Trade and Message Us buttons */}
-          <View style={styles.buttonRow}>
-            <View style={styles.buttonWrapper}>
-              <TradeButton watch={watch} />
+            {/* Horizontal Row for Trade and Message Us buttons */}
+            <View style={styles.buttonRow}>
+              <View style={styles.buttonWrapper}>
+                <TradeButton watch={watch} />
+              </View>
+              <View style={styles.buttonWrapper}>
+                <MessageButton title="MESSAGE US" />
+              </View>
             </View>
-            <View style={styles.buttonWrapper}>
-              <MessageButton title="MESSAGE US" />
+
+            {/* Specifications */}
+            <View style={styles.specsContainer}>
+              {specEntries.map((spec, index) => (
+                <SpecRow key={index} label={spec.label} value={spec.value} />
+              ))}
             </View>
-          </View>
+          </BlurView>
 
-          {/* Specifications */}
-          <View style={styles.specsContainer}>
-            {specEntries.map((spec, index) => (
-              <SpecRow key={index} label={spec.label} value={spec.value} />
-            ))}
-          </View>
-        </BlurView>
+          {/* Watch Description */}
+          {watch.description && (
+            <View style={styles.descriptionContainer}>
+              <Text style={styles.descriptionLabel}>Description</Text>
+              <Text style={styles.descriptionText}>{watch.description}</Text>
+            </View>
+          )}
 
-        {/* Watch Description */}
-        {watch.description && (
-          <View style={styles.descriptionContainer}>
-            <Text style={styles.descriptionLabel}>Description</Text>
-            <Text style={styles.descriptionText}>{watch.description}</Text>
+          {/* Heritage Footer */}
+          <View style={styles.footerContainer}>
+            <Text style={styles.footerText}>
+              Shreve, Crump & Low • Horological Excellence Since 1796
+            </Text>
           </View>
-        )}
+        </ScrollView>
 
-        {/* Heritage Footer */}
-        <View style={styles.footerContainer}>
-          <Text style={styles.footerText}>
-            Shreve, Crump & Low • Horological Excellence Since 1796
-          </Text>
+        {/* Full-Width Stripe Button Container */}
+        <View style={styles.bottomContainer}>
+          {purchaseCompleted || watch.sold ? (
+            <View style={[styles.stripeButton, styles.soldButton]}>
+              <Text style={styles.stripeButtonText}>Sold</Text>
+            </View>
+          ) : (
+            <StripeCheckout 
+              watch={watch}
+              onSuccess={handlePurchaseSuccess}
+              onCancel={() => console.log('Purchase cancelled')}
+            />
+          )}
         </View>
-      </ScrollView>
-
-      {/* Full-Width Stripe Button Container */}
-      <View style={styles.bottomContainer}>
-        <TouchableOpacity style={styles.stripeButton}>
-          <Text style={styles.stripeButtonText}>Purchase</Text>
-        </TouchableOpacity>
-      </View>
-    </SafeAreaView>
+      </SafeAreaView>
+    </StripeProvider>
   );
 }
 
@@ -304,7 +329,6 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 30,
   },
-
   footerContainer: {
     paddingVertical: 20,
     paddingHorizontal: 16,
@@ -345,4 +369,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
+  soldButton: {
+    backgroundColor: "#888",
+  }
 });

@@ -2,8 +2,9 @@ import 'dotenv/config';
 
 export default {
     expo: {
-        name: 'watch_salon',
+        name: 'Watch Salon',
         slug: 'salon',
+        icon: "./assets/images/App_Icon.jpg",
         extra: {
             FIREBASE_API_KEY: process.env.FIREBASE_API_KEY,
             FIREBASE_AUTH_DOMAIN: process.env.FIREBASE_AUTH_DOMAIN,
