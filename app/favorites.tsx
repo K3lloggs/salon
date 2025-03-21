@@ -29,7 +29,10 @@ export default function FavoritesScreen() {
   if (favorites.length === 0) {
     return (
       <View style={styles.container}>
-        <FixedHeader showBackButton={true} />
+        <View style={styles.headerContainer}>
+          <FixedHeader showBackButton={true} />
+          <Text style={styles.headerTitle}>Favorites</Text>
+        </View>
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyTitle}>No Favorites Yet</Text>
           <Text style={styles.emptyText}>
@@ -42,7 +45,10 @@ export default function FavoritesScreen() {
 
   return (
     <View style={styles.container}>
-      <FixedHeader showBackButton={true} />
+      <View style={styles.headerContainer}>
+        <FixedHeader showBackButton={true} />
+        <Text style={styles.headerTitle}>Favorites</Text>
+      </View>
       <FlatList
         data={favorites}
         renderItem={renderFavoriteItem}
@@ -58,6 +64,21 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#ffffff',
+  },
+  headerContainer: {
+    position: 'relative',
+    zIndex: 10,
+  },
+  headerTitle: {
+    position: 'absolute',
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#002d4e',
+    textAlign: 'center',
+    width: '100%',
+    top: 42,
+    left: 0,
+    right: 0,
   },
   list: {
     padding: 8,
