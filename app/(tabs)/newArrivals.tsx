@@ -14,7 +14,6 @@ import { useWatches } from '../hooks/useWatches';
 import { useSortContext } from '../context/SortContext';
 import { Watch } from '../types/Watch';
 
-// Estimate item height for more accurate getItemLayout function
 const ITEM_HEIGHT = 420; // Adjusted based on card dimensions and margins
 
 export default function NewArrivalsScreen() {
@@ -31,8 +30,10 @@ export default function NewArrivalsScreen() {
       return [...arrivals].sort((a, b) => b.price - a.price);
     } else if (sortOption === 'lowToHigh') {
       return [...arrivals].sort((a, b) => a.price - b.price);
+    } else {
+      // When sortOption is 'random' (or cleared), randomize the order
+      return [...arrivals].sort(() => Math.random() - 0.5);
     }
-    return arrivals;
   }, [watches, sortOption]);
 
   // Optimize item layout calculation for smoother scrolling
@@ -57,14 +58,22 @@ export default function NewArrivalsScreen() {
   }, [flatListRef]);
 
   const toggleFilterDropdown = useCallback(() => {
-    setShowFilterDropdown(prev => !prev);
+    setShowFilterDropdown((prev) => !prev);
   }, []);
 
-  const handleFilterSelect = useCallback((option: "lowToHigh" | "highToLow" | null) => {
-    setSortOption(option);
-    setShowFilterDropdown(false);
-    scrollToTop();
-  }, [setSortOption, scrollToTop]);
+  // Update filter selection to force random sorting if cleared (null)
+  const handleFilterSelect = useCallback(
+    (option: "lowToHigh" | "highToLow" | null) => {
+      if (option === null) {
+        setSortOption("random");
+      } else {
+        setSortOption(option);
+      }
+      setShowFilterDropdown(false);
+      scrollToTop();
+    },
+    [setSortOption, scrollToTop]
+  );
 
   const handleSearchChange = useCallback((query: string) => {
     setSearchQuery(query);
@@ -93,7 +102,7 @@ export default function NewArrivalsScreen() {
       
       {error ? (
         <View style={styles.errorContainer}>
-          
+          <Text style={styles.errorText}>An error occurred.</Text>
         </View>
       ) : (
         <FlatList
@@ -111,10 +120,9 @@ export default function NewArrivalsScreen() {
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-            
+              <Text style={styles.emptyText}>No new arrivals found.</Text>
             </View>
           }
-          // Pre-calculate heights for better performance
           maintainVisibleContentPosition={{
             minIndexForVisible: 0,
           }}

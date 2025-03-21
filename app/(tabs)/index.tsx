@@ -53,9 +53,14 @@ export default function AllScreen() {
     setShowFilterDropdown((prev) => !prev);
   }, []);
 
+  // When a filter option is selected, if it's null (clear filter), force random sorting.
   const handleFilterSelect = useCallback(
-    (option: SortOption) => {
-      setSortOption(option);
+    (option: "lowToHigh" | "highToLow" | null) => {
+      if (option === null) {
+        setSortOption("random");
+      } else {
+        setSortOption(option);
+      }
       setShowFilterDropdown(false);
       scrollToTop();
     },
@@ -65,6 +70,7 @@ export default function AllScreen() {
   const handleSearchChange = useCallback(
     (query: string) => {
       setSearchQuery(query);
+      // Scroll to top whenever the search query changes
       scrollToTop();
     },
     [scrollToTop]

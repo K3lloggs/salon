@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, memo } from 'react';
-import { View, TouchableOpacity, Text, StyleSheet, Animated, Dimensions, Platform } from 'react-native';
+import { View, TouchableOpacity, Text, StyleSheet, Animated, Dimensions, Platform, ViewStyle } from 'react-native';
 import { useSortContext } from '../context/SortContext';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -51,7 +51,7 @@ function FilterDropdownComponent({ isVisible, onSelect, onClose }: FilterDropdow
     onSelect(option);
   };
 
-  const animatedStyle = {
+  const animatedStyle: Animated.WithAnimatedObject<ViewStyle> = {
     opacity: dropdownAnim,
     transform: [
       {
