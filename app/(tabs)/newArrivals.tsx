@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import {
   View,
   FlatList,
@@ -20,23 +20,28 @@ export default function NewArrivalsScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const { sortOption, setSortOption } = useSortContext();
-  const { watches, error } = useWatches(searchQuery, sortOption);
+  const { watches, error } = useWatches(searchQuery);
   const flatListRef = useRef<FlatList>(null);
 
-  // Cache the new arrivals list and memoize for performance
+  // Force default sort to random on mount.
+  useEffect(() => {
+    setSortOption("random");
+  }, [setSortOption]);
+
+  // Filter for new arrivals and apply sorting based on sortOption.
   const newArrivals = useMemo(() => {
     const arrivals = watches.filter((watch) => watch.newArrival);
     if (sortOption === 'highToLow') {
       return [...arrivals].sort((a, b) => b.price - a.price);
     } else if (sortOption === 'lowToHigh') {
       return [...arrivals].sort((a, b) => a.price - b.price);
-    } else {
-      // When sortOption is 'random' (or cleared), randomize the order
+    } else if (sortOption === 'random') {
       return [...arrivals].sort(() => Math.random() - 0.5);
     }
+    return arrivals;
   }, [watches, sortOption]);
 
-  // Optimize item layout calculation for smoother scrolling
+  // Optimize item layout calculation for smoother scrolling.
   const getItemLayout = useCallback(
     (_data: any, index: number) => ({
       length: ITEM_HEIGHT,
@@ -46,7 +51,7 @@ export default function NewArrivalsScreen() {
     []
   );
 
-  // Memoize the render function to prevent unnecessary rerenders
+  // Memoize renderItem to avoid unnecessary re-renders.
   const renderItem = useCallback(({ item }: ListRenderItemInfo<Watch>) => (
     <WatchCard watch={item} />
   ), []);
@@ -55,13 +60,13 @@ export default function NewArrivalsScreen() {
     if (flatListRef.current) {
       flatListRef.current.scrollToOffset({ offset: 0, animated: true });
     }
-  }, [flatListRef]);
+  }, []);
 
   const toggleFilterDropdown = useCallback(() => {
     setShowFilterDropdown((prev) => !prev);
   }, []);
 
-  // Update filter selection to force random sorting if cleared (null)
+  // When a filter option is selected, if the option is null, force random sorting.
   const handleFilterSelect = useCallback(
     (option: "lowToHigh" | "highToLow" | null) => {
       if (option === null) {
@@ -118,11 +123,7 @@ export default function NewArrivalsScreen() {
           getItemLayout={getItemLayout}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No new arrivals found.</Text>
-            </View>
-          }
+          // Removed ListEmptyComponent so nothing is rendered if no items exist.
           maintainVisibleContentPosition={{
             minIndexForVisible: 0,
           }}
@@ -146,18 +147,6 @@ const styles = StyleSheet.create({
     color: '#FF0000', 
     fontSize: 16, 
     textAlign: 'center' 
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-    marginTop: 40
-  },
-  emptyText: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center'
   },
   listContent: {
     paddingVertical: 12,
