@@ -1,5 +1,5 @@
 // app/components/StripeCheckout.tsx
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -13,11 +13,14 @@ import {
   Platform,
   TextInput,
   SafeAreaView,
+  TouchableOpacity,
+  Image,
 } from "react-native";
 import { useStripe } from "@stripe/stripe-react-native";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { getApp } from "firebase/app";
 import { doc, getFirestore, setDoc } from "firebase/firestore";
+import { Feather } from '@expo/vector-icons';
 
 const StripeCheckout = ({ watch, onSuccess, onCancel }) => {
   const [modalVisible, setModalVisible] = useState(false);
@@ -34,38 +37,54 @@ const StripeCheckout = ({ watch, onSuccess, onCancel }) => {
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
   
   // Format price for display
-  const formattedPrice = watch?.price
-    ? `$${watch.price.toLocaleString()}`
-    : "$0";
+  const formattedPrice = useMemo(() => {
+    return watch?.price ? `$${watch.price.toLocaleString()}` : "$0";
+  }, [watch?.price]);
+    
+  // Process images properly based on the watch data structure
+  const watchImages = useMemo(() => {
+    if (!watch) return [];
+    
+    // Handle different image formats from Firebase
+    if (Array.isArray(watch.image)) {
+      return watch.image;
+    } else if (typeof watch.image === 'string') {
+      return [watch.image];
+    } else if (watch.image && typeof watch.image === 'object') {
+      return Object.values(watch.image);
+    }
+    
+    return [];
+  }, [watch]);
 
   // Validate form fields
   const validateForm = () => {
     if (!name.trim()) {
-      Alert.alert("Error", "Please enter your full name");
+      Alert.alert("Missing Information", "Please enter your full name");
       return false;
     }
     if (!email.trim() || !email.includes("@")) {
-      Alert.alert("Error", "Please enter a valid email address");
+      Alert.alert("Invalid Email", "Please enter a valid email address");
       return false;
     }
     if (!phone.trim()) {
-      Alert.alert("Error", "Please enter your phone number");
+      Alert.alert("Missing Information", "Please enter your phone number");
       return false;
     }
     if (!address.trim()) {
-      Alert.alert("Error", "Please enter your shipping address");
+      Alert.alert("Missing Information", "Please enter your shipping address");
       return false;
     }
     if (!city.trim()) {
-      Alert.alert("Error", "Please enter your city");
+      Alert.alert("Missing Information", "Please enter your city");
       return false;
     }
     if (!zipCode.trim()) {
-      Alert.alert("Error", "Please enter your ZIP/Postal code");
+      Alert.alert("Missing Information", "Please enter your ZIP/Postal code");
       return false;
     }
     if (!state.trim()) {
-      Alert.alert("Error", "Please enter your state");
+      Alert.alert("Missing Information", "Please enter your state");
       return false;
     }
     return true;
@@ -160,7 +179,7 @@ const StripeCheckout = ({ watch, onSuccess, onCancel }) => {
 
       if (initError) {
         console.error("Error initializing payment sheet:", initError);
-        Alert.alert("Error", initError.message);
+        Alert.alert("Payment Error", initError.message);
         setProcessing(false);
         return;
       }
@@ -176,13 +195,13 @@ const StripeCheckout = ({ watch, onSuccess, onCancel }) => {
         }
 
         console.error("Error presenting payment sheet:", presentError);
-        Alert.alert("Error", presentError.message);
+        Alert.alert("Payment Error", presentError.message);
         setProcessing(false);
         return;
       }
 
       // If we get here, payment was successful
-      Alert.alert("Success", "Your purchase was successful! We'll contact you shortly with shipping details and send you a confirmation email.", [
+      Alert.alert("Purchase Successful", "Your order has been confirmed! We'll contact you shortly with shipping details and send you a confirmation email.", [
         {
           text: "OK",
           onPress: () => {
@@ -194,12 +213,18 @@ const StripeCheckout = ({ watch, onSuccess, onCancel }) => {
     } catch (error) {
       console.error("Payment error:", error);
       Alert.alert(
-        "Error",
+        "Processing Error",
         "There was a problem processing your payment. Please try again."
       );
     } finally {
       setProcessing(false);
     }
+  };
+
+  const handleCloseModal = () => {
+    if (processing) return;
+    setModalVisible(false);
+    if (onCancel) onCancel();
   };
 
   return (
@@ -216,147 +241,171 @@ const StripeCheckout = ({ watch, onSuccess, onCancel }) => {
         animationType="slide"
         transparent={true}
         visible={modalVisible}
-        onRequestClose={() => {
-          if (!processing) {
-            setModalVisible(false);
-            if (onCancel) onCancel();
-          }
-        }}
+        onRequestClose={handleCloseModal}
       >
         <SafeAreaView style={styles.centeredView}>
-          <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
-            style={styles.keyboardView}
-          >
+          <View style={styles.modalContainer}>
             <View style={styles.modalView}>
-              <ScrollView style={styles.scrollView}>
+              {/* Header with back button */}
+              <View style={styles.modalHeader}>
+                <TouchableOpacity 
+                  style={styles.backButton}
+                  onPress={handleCloseModal}
+                  disabled={processing}
+                  hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+                >
+                  <Feather name="arrow-left" size={24} color="#002d4e" />
+                </TouchableOpacity>
                 <Text style={styles.modalTitle}>Complete Your Purchase</Text>
-                <Text style={styles.watchTitle}>
-                  {watch.brand} {watch.model}
-                </Text>
-                <Text style={styles.priceText}>{formattedPrice}</Text>
+                <View style={{width: 44}} />
+              </View>
 
-                <View style={styles.formContainer}>
-                  <Text style={styles.sectionTitle}>Shipping Information</Text>
-
-                  <Text style={styles.inputLabel}>Full Name</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={name}
-                    onChangeText={setName}
-                    placeholder="Enter your full name"
-                    editable={!processing}
-                    autoCapitalize="words"
-                  />
-
-                  <Text style={styles.inputLabel}>Email</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={email}
-                    onChangeText={setEmail}
-                    placeholder="Enter your email"
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    editable={!processing}
-                  />
-
-                  <Text style={styles.inputLabel}>Phone Number</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={phone}
-                    onChangeText={setPhone}
-                    placeholder="Enter your phone number"
-                    keyboardType="phone-pad"
-                    editable={!processing}
-                  />
-
-                  <Text style={styles.inputLabel}>Street Address</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={address}
-                    onChangeText={setAddress}
-                    placeholder="Enter your street address"
-                    editable={!processing}
-                  />
-
-                  <Text style={styles.inputLabel}>City</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={city}
-                    onChangeText={setCity}
-                    placeholder="Enter your city"
-                    editable={!processing}
-                  />
-
-                  <View style={styles.rowContainer}>
-                    <View style={styles.halfColumn}>
-                      <Text style={styles.inputLabel}>ZIP/Postal Code</Text>
-                      <TextInput
-                        style={styles.input}
-                        value={zipCode}
-                        onChangeText={setZipCode}
-                        placeholder="ZIP Code"
-                        keyboardType="numeric"
-                        editable={!processing}
+              {/* Scrollable content area */}
+              <KeyboardAvoidingView
+                behavior={Platform.OS === "ios" ? "padding" : undefined}
+                style={styles.keyboardView}
+              >
+                <ScrollView 
+                  style={styles.scrollView} 
+                  showsVerticalScrollIndicator={false}
+                  contentContainerStyle={styles.scrollViewContent}
+                >
+                  {/* Watch info section with image */}
+                  <View style={styles.watchInfoContainer}>
+                    {watchImages.length > 0 ? (
+                      <Image 
+                        source={{ uri: watchImages[0] }} 
+                        style={styles.watchImage}
+                        resizeMode="cover"
                       />
-                    </View>
-
-                    <View style={styles.halfColumn}>
-                      <Text style={styles.inputLabel}>State</Text>
-                      <TextInput
-                        style={styles.input}
-                        value={state}
-                        onChangeText={setState}
-                        placeholder="State"
-                        editable={!processing}
-                      />
-                    </View>
-                  </View>
-
-                  <Text style={styles.inputLabel}>Country</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={country}
-                    onChangeText={setCountry}
-                    placeholder="Country"
-                    editable={!processing}
-                  />
-
-                  <View style={styles.buttonContainer}>
-                    {processing ? (
-                      <View style={styles.processingContainer}>
-                        <ActivityIndicator size="large" color="#002D4E" />
-                        <Text style={styles.processingText}>
-                          Processing your payment...
-                        </Text>
-                      </View>
                     ) : (
-                      <>
-                        <Pressable
-                          style={styles.payButton}
-                          onPress={initializePayment}
-                        >
-                          <Text style={styles.payButtonText}>
-                            Pay {formattedPrice}
-                          </Text>
-                        </Pressable>
-
-                        <Pressable
-                          style={styles.cancelButton}
-                          onPress={() => {
-                            setModalVisible(false);
-                            if (onCancel) onCancel();
-                          }}
-                        >
-                          <Text style={styles.cancelButtonText}>Cancel</Text>
-                        </Pressable>
-                      </>
+                      <View style={styles.watchImagePlaceholder}>
+                        <Feather name="watch" size={30} color="#aaa" />
+                      </View>
                     )}
+                    <View style={styles.watchDetails}>
+                      <Text style={styles.watchBrand}>{watch.brand}</Text>
+                      <Text style={styles.watchTitle}>{watch.model}</Text>
+                      <Text style={styles.priceText}>{formattedPrice}</Text>
+                    </View>
                   </View>
-                </View>
-              </ScrollView>
+
+                  <View style={styles.formContainer}>
+                    <Text style={styles.sectionTitle}>Shipping Information</Text>
+
+                    <Text style={styles.inputLabel}>Full Name</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={name}
+                      onChangeText={setName}
+                      placeholder="Enter your full name"
+                      editable={!processing}
+                      autoCapitalize="words"
+                    />
+
+                    <Text style={styles.inputLabel}>Email</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={email}
+                      onChangeText={setEmail}
+                      placeholder="Enter your email"
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      editable={!processing}
+                    />
+
+                    <Text style={styles.inputLabel}>Phone Number</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={phone}
+                      onChangeText={setPhone}
+                      placeholder="Enter your phone number"
+                      keyboardType="phone-pad"
+                      editable={!processing}
+                    />
+
+                    <Text style={styles.inputLabel}>Street Address</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={address}
+                      onChangeText={setAddress}
+                      placeholder="Enter your street address"
+                      editable={!processing}
+                    />
+
+                    <Text style={styles.inputLabel}>City</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={city}
+                      onChangeText={setCity}
+                      placeholder="Enter your city"
+                      editable={!processing}
+                    />
+
+                    <View style={styles.rowContainer}>
+                      <View style={styles.halfColumn}>
+                        <Text style={styles.inputLabel}>ZIP/Postal Code</Text>
+                        <TextInput
+                          style={styles.input}
+                          value={zipCode}
+                          onChangeText={setZipCode}
+                          placeholder="ZIP Code"
+                          keyboardType="numeric"
+                          editable={!processing}
+                        />
+                      </View>
+
+                      <View style={styles.halfColumn}>
+                        <Text style={styles.inputLabel}>State</Text>
+                        <TextInput
+                          style={styles.input}
+                          value={state}
+                          onChangeText={setState}
+                          placeholder="State"
+                          editable={!processing}
+                        />
+                      </View>
+                    </View>
+
+                    <Text style={styles.inputLabel}>Country</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={country}
+                      onChangeText={setCountry}
+                      placeholder="Country"
+                      editable={!processing}
+                    />
+
+                    {/* Extra bottom padding to ensure content isn't hidden behind footer */}
+                    <View style={{ height: 90 }} />
+                  </View>
+                </ScrollView>
+              </KeyboardAvoidingView>
+
+              {/* Fixed footer with pay button */}
+              <View style={styles.modalFooter}>
+                {processing ? (
+                  <View style={styles.processingContainer}>
+                    <ActivityIndicator size="large" color="#002D4E" />
+                    <Text style={styles.processingText}>
+                      Processing your payment...
+                    </Text>
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    style={styles.payButton}
+                    onPress={initializePayment}
+                    disabled={processing}
+                  >
+                    <Text style={styles.payButtonText}>
+                      Pay {formattedPrice}
+                    </Text>
+                    <Feather name="arrow-right" size={20} color="#ffffff" />
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
-          </KeyboardAvoidingView>
+          </View>
         </SafeAreaView>
       </Modal>
     </>
@@ -390,59 +439,115 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
-  keyboardView: {
+  modalContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
   },
   modalView: {
     width: "95%",
-    maxHeight: "90%",
+    height: "90%",
     backgroundColor: "white",
-    borderRadius: 12,
+    borderRadius: 16,
     overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 4,
     },
     shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
+    shadowRadius: 8,
+    elevation: 10,
+    flexDirection: "column",
   },
-  scrollView: {
-    width: "100%",
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
+    zIndex: 10,
+  },
+  backButton: {
+    padding: 10,
+    backgroundColor: "#f7f7f7",
+    borderRadius: 10,
+    zIndex: 20,
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
   },
   modalTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#002D4E",
+    textAlign: "center",
+  },
+  keyboardView: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollViewContent: {
+    paddingBottom: 20,
+  },
+  watchInfoContainer: {
+    flexDirection: "row",
+    padding: 20,
+    backgroundColor: "#f9f9f9",
+    marginBottom: 20,
+    alignItems: "center",
+  },
+  watchImage: {
+    width: 100,
+    height: 120,
+    borderRadius: 8,
+    marginRight: 16,
+    backgroundColor: "#f0f0f0", // Add background color in case image loading is delayed
+  },
+  watchImagePlaceholder: {
+    width: 100,
+    height: 120,
+    borderRadius: 8,
+    backgroundColor: "#f0f0f0",
+    marginRight: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  watchDetails: {
+    flex: 1,
+  },
+  watchBrand: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#002D4E",
+    marginBottom: 4,
+    letterSpacing: 0.3,
+  },
+  watchTitle: {
+    fontSize: 16,
+    color: "#444",
+    marginBottom: 8,
+    letterSpacing: 0.3,
+  },
+  priceText: {
     fontSize: 22,
     fontWeight: "bold",
     color: "#002D4E",
-    marginTop: 20,
-    marginBottom: 4,
-    textAlign: "center",
-  },
-  watchTitle: {
-    fontSize: 18,
-    fontWeight: "500",
-    textAlign: "center",
-    marginBottom: 4,
-  },
-  priceText: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#002D4E",
-    textAlign: "center",
-    marginBottom: 24,
+    letterSpacing: 0.3,
   },
   formContainer: {
-    paddingHorizontal: 24,
-    paddingBottom: 32,
+    paddingHorizontal: 20,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: "600",
     marginBottom: 16,
-    marginTop: 8,
+    color: "#002D4E",
   },
   inputLabel: {
     fontSize: 14,
@@ -453,12 +558,12 @@ const styles = StyleSheet.create({
   input: {
     borderWidth: 1,
     borderColor: "#ddd",
-    borderRadius: 8,
+    borderRadius: 12,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 14,
     fontSize: 16,
     marginBottom: 16,
-    backgroundColor: "#f9f9f9",
+    backgroundColor: "#f5f5f7",
   },
   rowContainer: {
     flexDirection: "row",
@@ -467,45 +572,35 @@ const styles = StyleSheet.create({
   halfColumn: {
     width: "48%",
   },
-  buttonContainer: {
-    marginTop: 24,
+  modalFooter: {
+    borderTopWidth: 1,
+    borderTopColor: "#f0f0f0",
+    padding: 16,
+    width: "100%",
+    backgroundColor: "white",
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
   },
   payButton: {
     backgroundColor: "#002D4E",
     paddingVertical: 16,
-    borderRadius: 8,
+    borderRadius: 12,
     alignItems: "center",
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 3,
+    justifyContent: "center",
+    flexDirection: "row",
   },
   payButtonText: {
     color: "#ffffff",
-    fontSize: 18,
-    fontWeight: "600",
-  },
-  cancelButton: {
-    paddingVertical: 16,
-    borderRadius: 8,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#ddd",
-  },
-  cancelButtonText: {
-    color: "#444",
     fontSize: 16,
-    fontWeight: "500",
+    fontWeight: "600",
+    marginRight: 8,
   },
   processingContainer: {
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 24,
+    paddingVertical: 16,
   },
   processingText: {
     fontSize: 16,

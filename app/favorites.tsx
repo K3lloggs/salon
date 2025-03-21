@@ -22,13 +22,14 @@ export default function FavoritesScreen() {
     if (isWatch(item)) {
       return <WatchCard watch={item} />;
     }
+    
     return null;
   };
 
   if (favorites.length === 0) {
     return (
       <View style={styles.container}>
-        <FixedHeader />
+        <FixedHeader showBackButton={true} />
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyTitle}>No Favorites Yet</Text>
           <Text style={styles.emptyText}>
@@ -41,7 +42,7 @@ export default function FavoritesScreen() {
 
   return (
     <View style={styles.container}>
-      <FixedHeader />
+      <FixedHeader showBackButton={true} />
       <FlatList
         data={favorites}
         renderItem={renderFavoriteItem}
