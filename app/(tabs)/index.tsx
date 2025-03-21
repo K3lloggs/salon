@@ -1,69 +1,42 @@
 import React, { useState, useCallback, useRef, useMemo, useEffect } from "react";
-import { View, FlatList, RefreshControl, StyleSheet, Text, Platform } from "react-native";
+import { View, FlatList, RefreshControl, StyleSheet, Platform } from "react-native";
 import { FixedHeader } from "../components/FixedHeader";
 import { WatchCard } from "../components/WatchCard";
 import { FilterDropdown } from "../components/FilterButton";
 import { useWatches } from "../hooks/useWatches";
 import { useSortContext, SortOption } from "../context/SortContext";
 import { Watch } from "../types/Watch";
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Estimate item height for more accurate getItemLayout function
 const ITEM_HEIGHT = 420; // Adjusted based on card dimensions and margins
-
-// Key for storing app boot status
-const APP_BOOT_KEY = 'watchSalonAppBooted';
 
 export default function AllScreen() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const { sortOption, setSortOption } = useSortContext();
-  const { watches, loading, error } = useWatches(searchQuery, sortOption);
+  const { watches, loading } = useWatches(searchQuery, sortOption);
   const [refreshing, setRefreshing] = useState(false);
   const flatListRef = useRef<FlatList>(null);
   
-  // Add a ref to track if this is the initial load
+  // Add a ref to track if this is the initial load (for scrolling)
   const isInitialLoadRef = useRef(true);
 
-  // Apply sorting if needed (memoized for performance)
+  // Force initial sort option to be random on component mount
+  useEffect(() => {
+    setSortOption('random');
+  }, [setSortOption]);
+
+  // Apply sorting based on sortOption (memoized for performance)
   const sortedWatches = useMemo(() => {
     if (sortOption === 'highToLow') {
       return [...watches].sort((a, b) => b.price - a.price);
     } else if (sortOption === 'lowToHigh') {
       return [...watches].sort((a, b) => a.price - b.price);
     } else if (sortOption === 'random') {
-      // Randomize the order
+      // Always randomize the order
       return [...watches].sort(() => Math.random() - 0.5);
     }
     return watches;
   }, [watches, sortOption]);
-
-  // Check if it's a fresh app boot and set random sort on first launch
-  useEffect(() => {
-    const checkAppBoot = async () => {
-      try {
-        const wasBooted = await AsyncStorage.getItem(APP_BOOT_KEY);
-        
-        if (!wasBooted) {
-          // First boot in this session - set random sort
-          setSortOption('random');
-          
-          // Mark that the app has been booted in this session
-          await AsyncStorage.setItem(APP_BOOT_KEY, 'true');
-        }
-      } catch (e) {
-        console.error('Error checking app boot status:', e);
-      }
-    };
-
-    checkAppBoot();
-
-    // Clear the boot flag when the component is unmounted (app closed)
-    return () => {
-      AsyncStorage.removeItem(APP_BOOT_KEY)
-        .catch(e => console.error('Error clearing app boot status:', e));
-    };
-  }, [setSortOption]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -74,37 +47,38 @@ export default function AllScreen() {
     if (flatListRef.current) {
       flatListRef.current.scrollToOffset({ offset: 0, animated: true });
     }
-  }, [flatListRef]);
-
-  const toggleFilterDropdown = useCallback(() => {
-    setShowFilterDropdown(prev => !prev);
   }, []);
 
-  const handleFilterSelect = useCallback((option: SortOption) => {
-    setSortOption(option);
-    setShowFilterDropdown(false);
-    scrollToTop();
-  }, [setSortOption, scrollToTop]);
+  const toggleFilterDropdown = useCallback(() => {
+    setShowFilterDropdown((prev) => !prev);
+  }, []);
 
-  const handleSearchChange = useCallback((query: string) => {
-    setSearchQuery(query);
-    // Scroll to top whenever search query changes
-    scrollToTop();
-  }, [scrollToTop]);
+  const handleFilterSelect = useCallback(
+    (option: SortOption) => {
+      setSortOption(option);
+      setShowFilterDropdown(false);
+      scrollToTop();
+    },
+    [setSortOption, scrollToTop]
+  );
 
-  // Prevent scrolling to top on initial load
+  const handleSearchChange = useCallback(
+    (query: string) => {
+      setSearchQuery(query);
+      scrollToTop();
+    },
+    [scrollToTop]
+  );
+
+  // Prevent scrolling to top on the initial load
   useEffect(() => {
-    // Skip the first render/load cycle
     if (isInitialLoadRef.current) {
       isInitialLoadRef.current = false;
       return;
     }
-    
-    // Only scroll to top on subsequent data changes
     scrollToTop();
   }, [watches, scrollToTop]);
 
-  // Optimize list rendering
   const renderItem = useCallback(
     ({ item }: { item: Watch }) => <WatchCard watch={item} />,
     []
@@ -112,7 +86,6 @@ export default function AllScreen() {
 
   const keyExtractor = useCallback((item: Watch) => item.id, []);
 
-  // Optimize item layout calculation for smoother scrolling
   const getItemLayout = useCallback(
     (_data: any, index: number) => ({
       length: ITEM_HEIGHT,
@@ -122,7 +95,6 @@ export default function AllScreen() {
     []
   );
 
-  // Always show the header even during loading
   return (
     <View style={styles.container}>
       <FixedHeader 
@@ -170,15 +142,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#ffffff",
-  },
-  centered: {
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  errorText: {
-    color: "#FF0000",
-    fontSize: 16,
-    textAlign: "center",
   },
   listContent: {
     paddingVertical: 12,
