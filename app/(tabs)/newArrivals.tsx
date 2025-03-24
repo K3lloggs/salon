@@ -4,7 +4,7 @@ import {
   FlatList,
   StyleSheet,
   Text,
-  ListRenderItemInfo,
+  RefreshControl,
   Platform,
 } from 'react-native';
 import { FixedHeader } from '../components/FixedHeader';
@@ -20,41 +20,37 @@ export default function NewArrivalsScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const { sortOption, setSortOption } = useSortContext();
-  const { watches, error } = useWatches(searchQuery);
+  const { watches, loading, error } = useWatches(searchQuery, sortOption);
+  const [refreshing, setRefreshing] = useState(false);
   const flatListRef = useRef<FlatList>(null);
+  
+  // Add a ref to track if this is the initial load (for scrolling)
+  const isInitialLoadRef = useRef(true);
 
-  // Force default sort to random on mount.
+  // Force initial sort option to be random on component mount
   useEffect(() => {
-    setSortOption("random");
+    setSortOption('random');
   }, [setSortOption]);
 
-  // Filter for new arrivals and apply sorting based on sortOption.
+  // Filter for new arrivals and apply sorting - memoize this operation
   const newArrivals = useMemo(() => {
-    const arrivals = watches.filter((watch) => watch.newArrival);
+    const filtered = watches.filter((watch) => watch.newArrival);
+    
     if (sortOption === 'highToLow') {
-      return [...arrivals].sort((a, b) => b.price - a.price);
+      return [...filtered].sort((a, b) => b.price - a.price);
     } else if (sortOption === 'lowToHigh') {
-      return [...arrivals].sort((a, b) => a.price - b.price);
+      return [...filtered].sort((a, b) => a.price - b.price);
     } else if (sortOption === 'random') {
-      return [...arrivals].sort(() => Math.random() - 0.5);
+      // Note: Consider if you really need to randomize on every render
+      return [...filtered].sort(() => Math.random() - 0.5);
     }
-    return arrivals;
+    return filtered;
   }, [watches, sortOption]);
 
-  // Optimize item layout calculation for smoother scrolling.
-  const getItemLayout = useCallback(
-    (_data: any, index: number) => ({
-      length: ITEM_HEIGHT,
-      offset: ITEM_HEIGHT * index,
-      index,
-    }),
-    []
-  );
-
-  // Memoize renderItem to avoid unnecessary re-renders.
-  const renderItem = useCallback(({ item }: ListRenderItemInfo<Watch>) => (
-    <WatchCard watch={item} />
-  ), []);
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    setTimeout(() => setRefreshing(false), 1000);
+  }, []);
 
   const scrollToTop = useCallback(() => {
     if (flatListRef.current) {
@@ -66,7 +62,7 @@ export default function NewArrivalsScreen() {
     setShowFilterDropdown((prev) => !prev);
   }, []);
 
-  // When a filter option is selected, if the option is null, force random sorting.
+  // When a filter option is selected, if it's null (clear filter), force random sorting.
   const handleFilterSelect = useCallback(
     (option: "lowToHigh" | "highToLow" | null) => {
       if (option === null) {
@@ -80,21 +76,49 @@ export default function NewArrivalsScreen() {
     [setSortOption, scrollToTop]
   );
 
-  const handleSearchChange = useCallback((query: string) => {
-    setSearchQuery(query);
-  }, []);
+  const handleSearchChange = useCallback(
+    (query: string) => {
+      setSearchQuery(query);
+      // Scroll to top whenever the search query changes
+      scrollToTop();
+    },
+    [scrollToTop]
+  );
+
+  // Prevent scrolling to top on the initial load
+  useEffect(() => {
+    if (isInitialLoadRef.current) {
+      isInitialLoadRef.current = false;
+      return;
+    }
+    scrollToTop();
+  }, [watches, scrollToTop]);
+
+  const renderItem = useCallback(
+    ({ item }: { item: Watch }) => <WatchCard watch={item} />,
+    []
+  );
 
   const keyExtractor = useCallback((item: Watch) => item.id, []);
+
+  const getItemLayout = useCallback(
+    (_data: any, index: number) => ({
+      length: ITEM_HEIGHT,
+      offset: ITEM_HEIGHT * index,
+      index,
+    }),
+    []
+  );
 
   return (
     <View style={styles.container}>
       <FixedHeader 
         title="New Arrivals"
         showSearch={true}
-        showFavorites={true}
-        showFilter={true}
         searchQuery={searchQuery}
         onSearchChange={handleSearchChange}
+        showFavorites={true}
+        showFilter={true}
         onFilterToggle={toggleFilterDropdown}
         currentScreen="newArrivals"
       />
@@ -112,7 +136,7 @@ export default function NewArrivalsScreen() {
       ) : (
         <FlatList
           ref={flatListRef}
-          data={newArrivals}
+          data={loading ? [] : newArrivals}
           renderItem={renderItem}
           keyExtractor={keyExtractor}
           initialNumToRender={4}
@@ -122,8 +146,10 @@ export default function NewArrivalsScreen() {
           removeClippedSubviews={Platform.OS === 'android'}
           getItemLayout={getItemLayout}
           contentContainerStyle={styles.listContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#002d4e" />
+          }
           showsVerticalScrollIndicator={false}
-          // Removed ListEmptyComponent so nothing is rendered if no items exist.
           maintainVisibleContentPosition={{
             minIndexForVisible: 0,
           }}
