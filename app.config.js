@@ -6,6 +6,7 @@ export default {
     slug: 'salon',
     scheme: 'watchsalon', // <-- Required linking scheme for production builds
     icon: "./assets/images/logo.jpg",
+    orientation: "portrait",
     version: "1.0.2",  // Version number
     extra: {
       FIREBASE_API_KEY: process.env.FIREBASE_API_KEY,

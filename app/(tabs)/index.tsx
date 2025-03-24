@@ -17,7 +17,7 @@ export default function AllScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const flatListRef = useRef<FlatList>(null);
   
-  // Add a ref to track if this is the initial load (for scrolling)
+  // Ref to prevent scroll-to-top on initial load
   const isInitialLoadRef = useRef(true);
 
   // Force initial sort option to be random on component mount
@@ -25,7 +25,7 @@ export default function AllScreen() {
     setSortOption('random');
   }, [setSortOption]);
 
-  // Apply sorting based on sortOption (memoized for performance)
+  // Memoized sorting with additional sort options
   const sortedWatches = useMemo(() => {
     if (sortOption === 'highToLow') {
       return [...watches].sort((a, b) => b.price - a.price);
@@ -118,15 +118,26 @@ export default function AllScreen() {
         onFilterToggle={toggleFilterDropdown}
         currentScreen="index"
       />
+
+      {/* Render FilterDropdown as in the old version */}
+      <FilterDropdown
+        isVisible={showFilterDropdown}
+        onSelect={handleFilterSelect}
+        onClose={() => setShowFilterDropdown(false)}
+      />
+
       <FlatList
         ref={flatListRef}
-        data={sortedWatches}
+        data={loading ? [] : sortedWatches}
         renderItem={renderItem}
         keyExtractor={keyExtractor}
-        contentContainerStyle={styles.listContent}
-        getItemLayout={getItemLayout}
+        initialNumToRender={4}
         maxToRenderPerBatch={5}
         windowSize={7}
+        updateCellsBatchingPeriod={50}
+        removeClippedSubviews={Platform.OS === "android"}
+        getItemLayout={getItemLayout}
+        contentContainerStyle={styles.listContent}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -135,15 +146,11 @@ export default function AllScreen() {
             tintColor="#002d4e"
           />
         }
+        showsVerticalScrollIndicator={false}
+        maintainVisibleContentPosition={{
+          minIndexForVisible: 0,
+        }}
       />
-
-      {showFilterDropdown && (
-        <FilterDropdown
-          isVisible={showFilterDropdown}
-          onSelect={handleFilterSelect}
-          onClose={() => setShowFilterDropdown(false)}
-        />
-      )}
     </View>
   );
 }
@@ -154,9 +161,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   listContent: {
-    paddingTop: 8,
-    paddingBottom: 16,
-    paddingHorizontal: 0,
-    alignItems: "center",
+    paddingVertical: 12,
+    paddingBottom: 20,
   },
 });
