@@ -50,7 +50,6 @@ export default function MoreScreen() {
 
   // Function to handle YouTube linking
   const handleYoutubePress = () => {
-    // Attempt to open the YouTube app; if not available, fallback to the web URL.
     const youtubeAppUrl = 'youtube://www.youtube.com/@shrevecrumplow';
     const youtubeWebUrl = 'https://www.youtube.com/@shrevecrumplow';
     Linking.canOpenURL(youtubeAppUrl)
@@ -88,21 +87,51 @@ export default function MoreScreen() {
           style={styles.menuItem}
           onPress={handleInstagramPress}
         >
-          <Text style={styles.menuText}>Instagram</Text>
+          <View style={styles.leftContainer}>
+            <View style={styles.textContainer}>
+              <Text style={styles.menuText}>Instagram</Text>
+            </View>
+            <Ionicons
+              name="logo-instagram"
+              size={24}
+              color="#E1306C"
+              style={styles.socialIcon}
+            />
+          </View>
           <Ionicons name="chevron-forward" size={20} color="#002d4e" />
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.menuItem}
           onPress={handleFacebookPress}
         >
-          <Text style={styles.menuText}>Facebook</Text>
+          <View style={styles.leftContainer}>
+            <View style={styles.textContainer}>
+              <Text style={styles.menuText}>Facebook</Text>
+            </View>
+            <Ionicons
+              name="logo-facebook"
+              size={24}
+              color="#3b5998"
+              style={styles.socialIcon}
+            />
+          </View>
           <Ionicons name="chevron-forward" size={20} color="#002d4e" />
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.menuItem}
           onPress={handleYoutubePress}
         >
-          <Text style={styles.menuText}>YouTube</Text>
+          <View style={styles.leftContainer}>
+            <View style={styles.textContainer}>
+              <Text style={styles.menuText}>YouTube</Text>
+            </View>
+            <Ionicons
+              name="logo-youtube"
+              size={24}
+              color="#FF0000"
+              style={styles.socialIcon}
+            />
+          </View>
           <Ionicons name="chevron-forward" size={20} color="#002d4e" />
         </TouchableOpacity>
       </View>
@@ -145,9 +174,19 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 16,
-    paddingHorizontal: 8,
+    paddingHorizontal: 4, // Reduced horizontal padding to bring items closer to the left edge
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
+  },
+  leftContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  textContainer: {
+    width: 100, // Adjusted fixed width to shift the logo closer to the left edge
+  },
+  socialIcon: {
+    marginLeft: 4,
   },
   menuText: {
     fontSize: 16,
