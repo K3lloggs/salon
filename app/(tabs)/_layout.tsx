@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, View, StyleSheet } from 'react-native';
+import { Animated, StyleSheet } from 'react-native';
 import { Tabs, usePathname } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SortProvider } from '../context/SortContext';
@@ -88,7 +88,7 @@ export default function TabLayout() {
             title: 'BRANDS',
             tabBarIcon: ({ color, focused }) => (
               <TabBarIcon
-                name={focused ? 'pricetag' : 'pricetag-outline'}
+                name={focused ? 'layers' : 'layers-outline'}
                 color={color}
                 focused={focused}
               />
@@ -116,7 +116,7 @@ export default function TabLayout() {
             title: 'NEW',
             tabBarIcon: ({ color, focused }) => (
               <TabBarIcon
-                name={focused ? 'cube' : 'cube-outline'}
+                name={focused ? 'gift' : 'gift-outline'}
                 color={color}
                 focused={focused}
               />
