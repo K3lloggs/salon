@@ -3,12 +3,12 @@ import React from 'react';
 import { View, Text, FlatList, StyleSheet } from 'react-native';
 import { useFavorites } from './context/FavoritesContext';
 import { Watch } from '../app/types/Watch';
-import { ArtPiece } from '../app/types/ArtPiece';
+
 import { WatchCard } from './components/WatchCard';
 
 import { FixedHeader } from './components/FixedHeader';
 
-type FavoriteItem = Watch | ArtPiece;
+type FavoriteItem = Watch 
 
 export default function FavoritesScreen() {
   const { favorites } = useFavorites();
