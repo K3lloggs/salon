@@ -1,18 +1,19 @@
 // app/components/LikeList.tsx
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, ViewStyle, StyleProp } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 interface LikeListProps {
   initialLikes: number;
-  // Optionally, pass a flag to indicate if it's liked (default is false)
   isLiked?: boolean;
   watchId: string;
+  style?: StyleProp<ViewStyle>;
 }
 
 export const LikeList: React.FC<LikeListProps> = ({
   initialLikes,
   isLiked = false,
+  style,
 }) => {
   const formatCount = (count: number): string => {
     if (count >= 1000000) {
@@ -25,7 +26,7 @@ export const LikeList: React.FC<LikeListProps> = ({
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, style]}>
       <View style={styles.contentWrapper}>
         <Ionicons
           name={isLiked ? 'bookmark' : 'bookmark-outline'}
@@ -46,11 +47,8 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: '#F5F5F7',
     borderRadius: 8,
-    width: 'auto',
     alignSelf: 'flex-start',
-    position: 'absolute',
-    right: 0,
-    bottom: 32,
+    // Removed absolute positioning so it aligns inline with siblings
   },
   contentWrapper: {
     flexDirection: 'row',

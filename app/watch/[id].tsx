@@ -1,6 +1,5 @@
 // app/watch/[id].tsx
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   SafeAreaView,
   ScrollView,
@@ -8,7 +7,6 @@ import {
   Text,
   StyleSheet,
   Dimensions,
-  Pressable, // Use Pressable instead of TouchableOpacity
   ActivityIndicator,
 } from "react-native";
 import { BlurView } from "expo-blur";
@@ -23,9 +21,8 @@ import { useWatches } from "../hooks/useWatches";
 import { StripeProvider } from "@stripe/stripe-react-native";
 import StripeCheckout from "../components/StripeCheckout";
 
-// Stripe publishable key
-const STRIPE_PUBLISHABLE_KEY = "pk_test_51KOAMQDYuNaEOlQ2h7MW9gJ2D5TqDVRaP6bHYjsKY3UrTCrnCSVpILWzJvWiw33EhrouU4UObAxectGVxcnTbwsg001yIaHp9V";
-
+const STRIPE_PUBLISHABLE_KEY =
+  "pk_test_51KOAMQDYuNaEOlQ2h7MW9gJ2D5TqDVRaP6bHYjsKY3UrTCrnCSVpILWzJvWiw33EhrouU4UObAxectGVxcnTbwsg001yIaHp9V";
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 interface SpecRowProps {
@@ -33,27 +30,34 @@ interface SpecRowProps {
   value: string | null | undefined;
 }
 
-const SpecRow: React.FC<SpecRowProps> = ({ label, value }) => {
-  if (!value) return null;
-  return (
+const SpecRow: React.FC<SpecRowProps> = ({ label, value }) =>
+  value ? (
     <View style={styles.specRow}>
       <Text style={styles.specLabel}>{label}</Text>
       <Text style={styles.specValue}>{value}</Text>
     </View>
-  );
-};
+  ) : null;
 
 export default function DetailScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { watches, loading } = useWatches();
   const [purchaseCompleted, setPurchaseCompleted] = useState(false);
-  
-  // Always show loading until watches are fully loaded
+
+  // If watches are loaded and no matching watch is found, navigate back.
+  useEffect(() => {
+    if (!loading && watches && watches.length > 0) {
+      const found = watches.find((w) => String(w.id) === String(id));
+      if (!found) {
+        setTimeout(() => router.back(), 500);
+      }
+    }
+  }, [loading, watches, id, router]);
+
   if (loading || !watches || watches.length === 0) {
     return (
       <SafeAreaView style={styles.container}>
-        <FixedHeader showBackButton={true} title="" />
+        <FixedHeader showBackButton title="" />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#002d4e" />
         </View>
@@ -61,34 +65,28 @@ export default function DetailScreen() {
     );
   }
 
-  // Only look for watch after loading is complete
   const watch = watches.find((w) => String(w.id) === String(id));
-  
-  // Only redirect if we're sure watches are loaded and watch isn't found
   if (!watch) {
-    // Add a small delay to prevent immediate bounce back
-    setTimeout(() => {
-      router.back();
-    }, 500);
-    
     return (
       <SafeAreaView style={styles.container}>
-        <FixedHeader showBackButton={true} title="" />
+        <FixedHeader showBackButton title="" />
         <View style={styles.loadingContainer}>
-          <Text style={{color: "#666", marginBottom: 10}}>Watch not found</Text>
+          <Text style={{ color: "#666", marginBottom: 10 }}>Watch not found</Text>
           <ActivityIndicator size="small" color="#002d4e" />
         </View>
       </SafeAreaView>
     );
   }
 
-  // Handle successful purchase
   const handlePurchaseSuccess = () => {
     setPurchaseCompleted(true);
-    // Here you could update the watch status in Firestore
+    // Update Firestore or perform additional actions here
   };
 
-  // Specification entries
+  // Format price and MSRP values
+  const formattedPrice = watch.price ? watch.price.toLocaleString() : "0";
+  const formattedMSRP = watch.msrp ? watch.msrp.toLocaleString() : "0";
+
   const specEntries = [
     { label: "Case Material", value: watch.caseMaterial },
     { label: "Diameter", value: watch.caseDiameter },
@@ -101,11 +99,17 @@ export default function DetailScreen() {
           : null,
     },
     { label: "Dial", value: watch.dial },
-    { label: "MSRP", value: watch.msrp ? `$${watch.msrp.toLocaleString()}` : null },
     { label: "Power Reserve", value: watch.powerReserve },
     { label: "Strap", value: watch.strap },
     { label: "Year", value: watch.year },
-  
+    {
+      label: "Box",
+      value: watch.box !== undefined ? (watch.box ? "Yes" : "No") : null,
+    },
+    {
+      label: "Papers",
+      value: watch.papers !== undefined ? (watch.papers ? "Yes" : "No") : null,
+    },
     { label: "Warranty", value: watch.warranty },
     {
       label: "Exhibition Caseback",
@@ -121,18 +125,25 @@ export default function DetailScreen() {
   return (
     <StripeProvider
       publishableKey={STRIPE_PUBLISHABLE_KEY}
-      merchantIdentifier="merchant.com.watchsalon" // Only needed for Apple Pay
+      merchantIdentifier="merchant.com.watchsalon"
     >
       <SafeAreaView style={styles.container}>
-        <FixedHeader showBackButton={true} watch={watch} />
+        <FixedHeader showBackButton watch={watch} />
 
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <SecondaryCard watch={watch} />
 
           <BlurView intensity={40} tint="light" style={styles.detailsPanel}>
-            {/* Top Text Section with extra spacing */}
             <View style={styles.headerSection}>
-              <Text style={styles.brand}>{watch.brand}</Text>
+              {/* Brand and LikeList on the same row */}
+              <View style={styles.brandContainer}>
+                <Text style={styles.brand} numberOfLines={1} ellipsizeMode="tail">
+                  {watch.brand}
+                </Text>
+                <View style={styles.likeListWrapper}>
+                  <LikeList watchId={watch.id} initialLikes={watch.likes || 0} />
+                </View>
+              </View>
               <Text style={styles.model}>{watch.model}</Text>
               <View style={styles.infoContainer}>
                 {watch.referenceNumber && (
@@ -151,15 +162,19 @@ export default function DetailScreen() {
                   <StockBadge />
                 </View>
                 <View style={styles.priceContainer}>
-                  <LikeList watchId={watch.id} initialLikes={watch.likes || 0} />
-                  <Text style={styles.price}>
-                    ${watch.price.toLocaleString()}
-                  </Text>
+                  {/* Fixed MSRP display */}
+                  {watch.msrp ? (
+                    <View style={styles.msrpContainer}>
+                      <Text style={styles.msrpLabel}>MSRP: </Text>
+                      <Text style={styles.msrpValue}>${formattedMSRP}</Text>
+                    </View>
+                  ) : null}
+                  {/* Fixed price display */}
+                  <Text style={styles.price}>${formattedPrice}</Text>
                 </View>
               </View>
             </View>
 
-            {/* Horizontal Row for Trade and Message Us buttons */}
             <View style={styles.buttonRow}>
               <View style={styles.buttonWrapper}>
                 <TradeButton watch={watch} />
@@ -169,7 +184,6 @@ export default function DetailScreen() {
               </View>
             </View>
 
-            {/* Specifications */}
             <View style={styles.specsContainer}>
               {specEntries.map((spec, index) => (
                 <SpecRow key={index} label={spec.label} value={spec.value} />
@@ -177,7 +191,6 @@ export default function DetailScreen() {
             </View>
           </BlurView>
 
-          {/* Watch Description */}
           {watch.description && (
             <View style={styles.descriptionContainer}>
               <Text style={styles.descriptionLabel}>Description</Text>
@@ -185,7 +198,6 @@ export default function DetailScreen() {
             </View>
           )}
 
-          {/* Heritage Footer */}
           <View style={styles.footerContainer}>
             <Text style={styles.footerText}>
               Shreve, Crump & Low • Horological Excellence Since 1796
@@ -193,17 +205,16 @@ export default function DetailScreen() {
           </View>
         </ScrollView>
 
-        {/* Full-Width Stripe Button Container */}
         <View style={styles.bottomContainer}>
           {purchaseCompleted || watch.sold ? (
             <View style={[styles.stripeButton, styles.soldButton]}>
               <Text style={styles.stripeButtonText}>Sold</Text>
             </View>
           ) : (
-            <StripeCheckout 
+            <StripeCheckout
               watch={watch}
               onSuccess={handlePurchaseSuccess}
-              onCancel={() => console.log('Purchase cancelled')}
+              onCancel={() => console.log("Purchase cancelled")}
             />
           )}
         </View>
@@ -213,18 +224,9 @@ export default function DetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: "#fff" 
-  },
-  scrollContent: { 
-    paddingBottom: 140 
-  },
-  loadingContainer: { 
-    flex: 1, 
-    justifyContent: "center", 
-    alignItems: "center" 
-  },
+  container: { flex: 1, backgroundColor: "#fff" },
+  scrollContent: { paddingBottom: 140 },
+  loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
   detailsPanel: {
     marginTop: -20,
     padding: 28,
@@ -233,31 +235,34 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     marginBottom: 16,
   },
-  descriptionContainer: {
-    paddingHorizontal: 16,
-    marginBottom: 16,
-  },
+  descriptionContainer: { paddingHorizontal: 16, marginBottom: 16 },
   descriptionLabel: {
     fontSize: 16,
     fontWeight: "700",
     color: "#002d4e",
     marginBottom: 8,
   },
-  descriptionText: {
-    fontSize: 15,
-    color: "#002d4e",
-    lineHeight: 22,
-  },
-  headerSection: {
-    marginBottom: 32, // Extra breathing room
-    paddingTop: 8,
-  },
-  brand: {
-    fontSize: 30,
-    fontWeight: "700",
-    color: "#002d4e",
-    letterSpacing: -0.5,
+  descriptionText: { fontSize: 15, color: "#002d4e", lineHeight: 22 },
+  headerSection: { marginBottom: 32, paddingTop: 8 },
+  /* BRAND & LIKELIST */
+  brandContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: 8,
+  },
+  brand: { 
+    fontSize: 30, 
+    fontWeight: "700", 
+    color: "#002d4e", 
+    letterSpacing: -0.5,
+    flex: 1, // Allow the brand text to shrink
+    marginRight: 10, // Add some spacing between brand and like button
+  },
+  likeListWrapper: {
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 16, // Positions the like list lower to align with brand
   },
   model: {
     fontSize: 20,
@@ -274,46 +279,57 @@ const styles = StyleSheet.create({
     fontWeight: "400",
     marginBottom: 4,
   },
+  /* STOCK & PRICE */
   stockPriceContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 24,
+    marginBottom: 14,
+    marginTop: -9, // Increased negative margin to bring price up further
   },
   stockBadgeWrapper: { width: SCREEN_WIDTH * 0.3, overflow: "hidden" },
-  priceContainer: { flex: 1, alignItems: "flex-end" },
+  priceContainer: {
+    flex: 1,
+    flexDirection: "column",
+    alignItems: "flex-end",
+    justifyContent: "center",
+    marginTop: -5, // Move price up 5 pixels as requested
+  },
+  msrpContainer: { flexDirection: "row", alignItems: "center", marginBottom: 2 },
+  msrpLabel: { fontSize: 14, color: "#002d4e", opacity: 0.8 },
+  msrpValue: {
+    fontSize: 14,
+    color: "#002d4e",
+    opacity: 0.8,
+    textDecorationLine: "line-through",
+    fontWeight: "700",
+  },
   price: {
     fontSize: 22,
     fontWeight: "600",
     color: "#002d4e",
     letterSpacing: -0.3,
+    marginTop: -4,
   },
+  /* BUTTON ROW */
   buttonRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     marginBottom: 32,
     marginHorizontal: -12,
   },
-  buttonWrapper: {
-    flex: 1,
-    marginHorizontal: 8,
-    marginVertical: -34,
-  },
+  buttonWrapper: { flex: 1, marginHorizontal: 8, marginVertical: -34 },
+  /* SPECS */
   specsContainer: { marginTop: 84, paddingHorizontal: 3 },
   specRow: {
-    gap: 15,
+    gap: 30,
     flexDirection: "row",
     alignItems: "flex-start",
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: "#f0f0f0",
   },
-  specLabel: {
-    fontSize: 15,
-    color: "#666",
-    letterSpacing: -0.2,
-    width: 120,
-  },
+  specLabel: { fontSize: 15, color: "#666", letterSpacing: -0.2, width: 120 },
   specValue: {
     fontSize: 15,
     color: "#002d4e",
@@ -322,10 +338,8 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 30,
   },
-  footerContainer: {
-    paddingVertical: 20,
-    paddingHorizontal: 16,
-  },
+  /* FOOTER */
+  footerContainer: { paddingVertical: 20, paddingHorizontal: 16 },
   footerText: {
     fontSize: 15,
     color: "#002d4e",
@@ -334,6 +348,7 @@ const styles = StyleSheet.create({
     fontWeight: "300",
     textTransform: "uppercase",
   },
+  /* BOTTOM CONTAINER */
   bottomContainer: {
     position: "absolute",
     bottom: 0,
@@ -357,12 +372,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  stripeButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  soldButton: {
-    backgroundColor: "#888",
-  }
+  stripeButtonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
+  soldButton: { backgroundColor: "#888" },
 });
