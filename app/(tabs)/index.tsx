@@ -15,31 +15,35 @@ export default function AllScreen() {
   const { sortOption, setSortOption } = useSortContext();
   const { watches, loading } = useWatches(searchQuery, sortOption);
   const [refreshing, setRefreshing] = useState(false);
-  const flatListRef = useRef<FlatList>(null);
-  
-  // Ref to prevent scroll-to-top on initial load
-  const isInitialLoadRef = useRef(true);
+  const flatListRef = useRef<FlatList<Watch>>(null);
+
+  // Ref for stable random sorting
+  const randomOrderRef = useRef<Watch[] | null>(null);
 
   // Force initial sort option to be random on component mount
   useEffect(() => {
-    setSortOption('random');
+    setSortOption("random");
   }, [setSortOption]);
 
   // Memoized sorting with additional sort options
   const sortedWatches = useMemo(() => {
-    if (sortOption === 'highToLow') {
-      return [...watches].sort((a, b) => b.price - a.price);
-    } else if (sortOption === 'lowToHigh') {
-      return [...watches].sort((a, b) => a.price - b.price);
-    } else if (sortOption === 'mostLiked') {
-      // Sort by most likes (highest to lowest)
-      return [...watches].sort((a, b) => (b.likes || 0) - (a.likes || 0));
-    } else if (sortOption === 'leastLiked') {
-      // Sort by least likes (lowest to highest)
-      return [...watches].sort((a, b) => (a.likes || 0) - (b.likes || 0));
-    } else if (sortOption === 'random') {
-      // Always randomize the order
-      return [...watches].sort(() => Math.random() - 0.5);
+    if (sortOption === "random") {
+      if (!randomOrderRef.current || randomOrderRef.current.length !== watches.length) {
+        randomOrderRef.current = [...watches].sort(() => Math.random() - 0.5);
+      }
+      return randomOrderRef.current;
+    } else {
+      // Clear the random order when a different sort option is selected.
+      randomOrderRef.current = null;
+      if (sortOption === "highToLow") {
+        return [...watches].sort((a, b) => b.price - a.price);
+      } else if (sortOption === "lowToHigh") {
+        return [...watches].sort((a, b) => a.price - b.price);
+      } else if (sortOption === "mostLiked") {
+        return [...watches].sort((a, b) => (b.likes || 0) - (a.likes || 0));
+      } else if (sortOption === "leastLiked") {
+        return [...watches].sort((a, b) => (a.likes || 0) - (b.likes || 0));
+      }
     }
     return watches;
   }, [watches, sortOption]);
@@ -82,14 +86,7 @@ export default function AllScreen() {
     [scrollToTop]
   );
 
-  // Prevent scrolling to top on the initial load
-  useEffect(() => {
-    if (isInitialLoadRef.current) {
-      isInitialLoadRef.current = false;
-      return;
-    }
-    scrollToTop();
-  }, [watches, scrollToTop]);
+  // Removed auto scroll-to-top on every watches change to avoid interfering with interactions
 
   const renderItem = useCallback(
     ({ item }: { item: Watch }) => <WatchCard watch={item} />,
@@ -119,7 +116,7 @@ export default function AllScreen() {
         currentScreen="index"
       />
 
-      {/* Render FilterDropdown as in the old version */}
+      {/* Render FilterDropdown */}
       <FilterDropdown
         isVisible={showFilterDropdown}
         onSelect={handleFilterSelect}
@@ -135,7 +132,8 @@ export default function AllScreen() {
         maxToRenderPerBatch={5}
         windowSize={7}
         updateCellsBatchingPeriod={50}
-        removeClippedSubviews={Platform.OS === "android"}
+        // Disabled removeClippedSubviews to avoid potential touch issues
+        removeClippedSubviews={false}
         getItemLayout={getItemLayout}
         contentContainerStyle={styles.listContent}
         refreshControl={
