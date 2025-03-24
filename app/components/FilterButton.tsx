@@ -2,10 +2,11 @@ import React, { useState, useRef, useEffect, memo } from 'react';
 import { View, TouchableOpacity, Text, StyleSheet, Animated, Dimensions, Platform, ViewStyle } from 'react-native';
 import { useSortContext } from '../context/SortContext';
 import { Ionicons } from '@expo/vector-icons';
+import { SortOption } from '../context/SortContext';
 
 interface FilterDropdownProps {
   isVisible: boolean;
-  onSelect: (option: "lowToHigh" | "highToLow" | null) => void;
+  onSelect: (option: SortOption) => void;
   onClose: () => void;
 }
 
@@ -47,7 +48,7 @@ function FilterDropdownComponent({ isVisible, onSelect, onClose }: FilterDropdow
     }
   }, [isVisible, dropdownAnim, backdropAnim]);
 
-  const handleSelectOption = (option: "lowToHigh" | "highToLow" | null) => {
+  const handleSelectOption = (option: SortOption) => {
     onSelect(option);
   };
 
@@ -90,7 +91,7 @@ function FilterDropdownComponent({ isVisible, onSelect, onClose }: FilterDropdow
       
       <Animated.View style={[styles.dropdown, animatedStyle]}>
         <View style={styles.dropdownHeader}>
-          <Text style={styles.dropdownTitle}>Sort by Price</Text>
+          <Text style={styles.dropdownTitle}>Sort Options</Text>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <Ionicons name="close" size={22} color="#777" />
           </TouchableOpacity>
@@ -105,7 +106,7 @@ function FilterDropdownComponent({ isVisible, onSelect, onClose }: FilterDropdow
           accessibilityRole="button"
         >
           <Ionicons name="arrow-up" size={18} color="#002d4e" style={styles.itemIcon} />
-          <Text style={styles.dropdownText}>Price: Low to High</Text>
+          <Text style={styles.dropdownText}>Low to High</Text>
         </TouchableOpacity>
         
         <TouchableOpacity 
@@ -117,7 +118,19 @@ function FilterDropdownComponent({ isVisible, onSelect, onClose }: FilterDropdow
           accessibilityRole="button"
         >
           <Ionicons name="arrow-down" size={18} color="#002d4e" style={styles.itemIcon} />
-          <Text style={styles.dropdownText}>Price: High to Low</Text>
+          <Text style={styles.dropdownText}>High to Low</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          onPress={() => handleSelectOption("mostLiked")} 
+          style={styles.dropdownItem} 
+          activeOpacity={0.7}
+          accessible={true}
+          accessibilityLabel="Sort by most liked"
+          accessibilityRole="button"
+        >
+          <Ionicons name="trending-up" size={18} color="#002d4e" style={styles.itemIcon} />
+          <Text style={styles.dropdownText}>Most Liked</Text>
         </TouchableOpacity>
         
         <TouchableOpacity 
@@ -203,7 +216,7 @@ const styles = StyleSheet.create({
   dropdownItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 16,
+    paddingVertical: 14,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',

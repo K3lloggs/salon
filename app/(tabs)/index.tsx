@@ -31,6 +31,12 @@ export default function AllScreen() {
       return [...watches].sort((a, b) => b.price - a.price);
     } else if (sortOption === 'lowToHigh') {
       return [...watches].sort((a, b) => a.price - b.price);
+    } else if (sortOption === 'mostLiked') {
+      // Sort by most likes (highest to lowest)
+      return [...watches].sort((a, b) => (b.likes || 0) - (a.likes || 0));
+    } else if (sortOption === 'leastLiked') {
+      // Sort by least likes (lowest to highest)
+      return [...watches].sort((a, b) => (a.likes || 0) - (b.likes || 0));
     } else if (sortOption === 'random') {
       // Always randomize the order
       return [...watches].sort(() => Math.random() - 0.5);
@@ -55,7 +61,7 @@ export default function AllScreen() {
 
   // When a filter option is selected, if it's null (clear filter), force random sorting.
   const handleFilterSelect = useCallback(
-    (option: "lowToHigh" | "highToLow" | null) => {
+    (option: SortOption) => {
       if (option === null) {
         setSortOption("random");
       } else {
@@ -103,43 +109,41 @@ export default function AllScreen() {
 
   return (
     <View style={styles.container}>
-      <FixedHeader 
-        title="Watch Salon"
-        showSearch={true}
-        searchQuery={searchQuery}
-        onSearchChange={handleSearchChange}
+      <FixedHeader
         showFavorites={true}
+        showSearch={true}
+        onSearchChange={handleSearchChange}
+        searchQuery={searchQuery}
         showFilter={true}
         onFilterToggle={toggleFilterDropdown}
         currentScreen="index"
       />
-      
-      <FilterDropdown 
-        isVisible={showFilterDropdown}
-        onSelect={handleFilterSelect}
-        onClose={() => setShowFilterDropdown(false)}
-      />
-      
       <FlatList
         ref={flatListRef}
-        data={loading ? [] : sortedWatches}
+        data={sortedWatches}
         renderItem={renderItem}
         keyExtractor={keyExtractor}
-        initialNumToRender={4}
+        contentContainerStyle={styles.listContent}
+        getItemLayout={getItemLayout}
         maxToRenderPerBatch={5}
         windowSize={7}
-        updateCellsBatchingPeriod={50}
-        removeClippedSubviews={Platform.OS === 'android'}
-        getItemLayout={getItemLayout}
-        contentContainerStyle={styles.listContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#002d4e" />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={["#002d4e"]}
+            tintColor="#002d4e"
+          />
         }
-        showsVerticalScrollIndicator={false}
-        maintainVisibleContentPosition={{
-          minIndexForVisible: 0,
-        }}
       />
+
+      {showFilterDropdown && (
+        <FilterDropdown
+          isVisible={showFilterDropdown}
+          onSelect={handleFilterSelect}
+          onClose={() => setShowFilterDropdown(false)}
+        />
+      )}
     </View>
   );
 }
@@ -147,10 +151,12 @@ export default function AllScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#ffffff",
+    backgroundColor: "#fff",
   },
   listContent: {
-    paddingVertical: 12,
-    paddingBottom: 20,
-  }
+    paddingTop: 8,
+    paddingBottom: 16,
+    paddingHorizontal: 0,
+    alignItems: "center",
+  },
 });

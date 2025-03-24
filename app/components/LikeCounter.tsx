@@ -68,9 +68,9 @@ const LikeCounter: React.FC<LikeCounterProps> = ({ watch, initialLikes }) => {
       activeOpacity={0.7}
     >
       <Ionicons
-        name={liked ? 'heart' : 'heart-outline'}
+        name={liked ? 'bookmark' : 'bookmark-outline'}
         size={25}
-        color={liked ? '#ff0000' : '#002d4e'}
+        color={'#002d4e'}
       />
       <Text style={[styles.likeText, liked && styles.likedText]}>
         {likeCount}

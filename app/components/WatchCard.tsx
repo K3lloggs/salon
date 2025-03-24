@@ -1,4 +1,4 @@
-import React, { useState, useRef, memo, useCallback } from 'react';
+import React, { useState, useRef, memo, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -14,29 +14,84 @@ import { Watch } from '../types/Watch';
 import { NewArrivalBadge } from './NewArrivalBadge';
 import { Pagination } from './Pagination';
 import LikeCounter from './LikeCounter';
+import { Ionicons } from '@expo/vector-icons';
 
 interface WatchCardProps {
   watch: Watch;
   disableNavigation?: boolean;
 }
 
-// Create a more efficient image component with caching
-const OptimizedImage = memo(({ uri, style, onPress }: { uri: string, style: any, onPress: () => void }) => {
+// Memoize accessory icons to prevent re-renders
+const WatchAccessories = memo(({ box, papers }: { box: boolean; papers: boolean }) => {
+  if (!box && !papers) return null;
+  
   return (
-    <Pressable onPress={onPress} style={style.container}>
+    <View style={styles.accessoriesContainer}>
+      {box && (
+        <View style={styles.accessoryIcon}>
+          <Ionicons name="cube-outline" size={18} color="#FFFFFF" />
+        </View>
+      )}
+      {papers && (
+        <View style={styles.accessoryIcon}>
+          <Ionicons name="document-text-outline" size={18} color="#FFFFFF" />
+        </View>
+      )}
+    </View>
+  );
+});
+
+// Pre-compute styles for better performance
+const imageStyles = StyleSheet.create({
+  image: {
+    height: '100%',
+    aspectRatio: 9 / 11,
+  }
+});
+
+// Create a highly optimized image component
+const OptimizedImage = memo(({ uri, width, onPress }: { uri: string, width: number, onPress: () => void }) => {
+  // Memoize the container style to avoid object creation on each render
+  const containerStyle = useMemo(() => ({ width }), [width]);
+  
+  // Memoize the combined styles
+  const imageStyle = useMemo(() => [
+    imageStyles.image, 
+    { width }
+  ], [width]);
+  
+  return (
+    <Pressable onPress={onPress} style={containerStyle}>
       <Image
         source={{ uri }}
-        style={style.image}
+        style={imageStyle}
         resizeMode="cover"
+        // Add caching options
+        fadeDuration={0}
+        // Only load when in viewport for FlatList
+        progressiveRenderingEnabled={true}
       />
     </Pressable>
   );
 });
 
+// Create the price component separately to avoid unnecessary re-renders
+const PriceDisplay = memo(({ price }: { price: number | string }) => (
+  <Text style={styles.price}>
+    ${typeof price === 'number' ? price.toLocaleString() : 'N/A'}
+  </Text>
+));
+
 const WatchCardComponent = ({ watch, disableNavigation = false }: WatchCardProps) => {
   const [cardWidth, setCardWidth] = useState<number>(0);
   const scrollX = useRef(new Animated.Value(0)).current;
-  const images = Array.isArray(watch.image) ? watch.image : [watch.image];
+  
+  // Memoize the images array to prevent re-creation on each render
+  const images = useMemo(() => 
+    Array.isArray(watch.image) ? watch.image : [watch.image], 
+    [watch.image]
+  );
+  
   const router = useRouter();
 
   const handlePress = useCallback(() => {
@@ -49,14 +104,37 @@ const WatchCardComponent = ({ watch, disableNavigation = false }: WatchCardProps
   }, [disableNavigation, router, watch.id]);
 
   const onCardLayout = useCallback((event: LayoutChangeEvent) => {
-    setCardWidth(event.nativeEvent.layout.width);
-  }, []);
+    const width = event.nativeEvent.layout.width;
+    // Only update if width actually changed
+    if (width !== cardWidth) {
+      setCardWidth(width);
+    }
+  }, [cardWidth]);
 
   // For Animated.event with contentOffset, useNativeDriver MUST be false
-  const handleScroll = Animated.event(
+  const handleScroll = useMemo(() => Animated.event(
     [{ nativeEvent: { contentOffset: { x: scrollX } } }],
     { useNativeDriver: false }
-  );
+  ), [scrollX]);
+
+  // Memoize getItemLayout to avoid recreating this function on each render
+  const getItemLayout = useCallback((data: any, index: number) => ({
+    length: cardWidth || 400,
+    offset: (cardWidth || 400) * index,
+    index
+  }), [cardWidth]);
+
+  // Memoize renderItem to avoid recreating function on each render
+  const renderItem = useCallback(({ item: imageUrl }: { item: string }) => (
+    <OptimizedImage
+      uri={imageUrl}
+      width={cardWidth || 400}
+      onPress={handlePress}
+    />
+  ), [cardWidth, handlePress]);
+
+  // Only show pagination if needed
+  const showPagination = images.length > 1;
 
   return (
     <View style={styles.cardWrapper} onLayout={onCardLayout}>
@@ -67,37 +145,32 @@ const WatchCardComponent = ({ watch, disableNavigation = false }: WatchCardProps
             pagingEnabled
             showsHorizontalScrollIndicator={false}
             onScroll={handleScroll}
-            scrollEventThrottle={16}
+            scrollEventThrottle={32}
             snapToInterval={cardWidth || 400}
             decelerationRate="fast"
             snapToAlignment="center"
-            removeClippedSubviews={false} // Prevent visual glitches when images load
+            removeClippedSubviews={Platform.OS === 'android'}
             data={images}
             keyExtractor={(item, index) => `${watch.id}-image-${index}`}
-            renderItem={({ item: imageUrl }) => (
-              <OptimizedImage
-                uri={imageUrl}
-                style={{
-                  container: { width: cardWidth || 400 },
-                  image: [styles.image, { width: cardWidth || 400 }]
-                }}
-                onPress={handlePress}
-              />
-            )}
-            initialNumToRender={3} // Render more items initially to reduce flickering
-            maxToRenderPerBatch={4}
-            windowSize={5} // Increase window size for smoother loading
-            getItemLayout={(data, index) => (
-              // Pre-calculate item dimensions to avoid layout shifts
-              { length: cardWidth || 400, offset: (cardWidth || 400) * index, index }
-            )}
+            renderItem={renderItem}
+            initialNumToRender={1}
+            maxToRenderPerBatch={2}
+            windowSize={3}
+            getItemLayout={getItemLayout}
+            // Use cacheExtent to pre-load adjacent items
+            onEndReachedThreshold={0.5}
+            // Add key to force remounting when watch changes
+            key={`watch-${watch.id}`}
           />
 
           {watch.newArrival && <NewArrivalBadge />}
 
           <LikeCounter watch={watch} initialLikes={watch.likes || 0} />
+          
+          {/* Memoized accessories component */}
+          <WatchAccessories box={watch.box} papers={watch.papers} />
 
-          {images.length > 1 && (
+          {showPagination && (
             <Pagination
               scrollX={scrollX}
               cardWidth={cardWidth || 400}
@@ -114,9 +187,8 @@ const WatchCardComponent = ({ watch, disableNavigation = false }: WatchCardProps
             <Text style={styles.model} numberOfLines={2}>
               {watch.model}
             </Text>
-            <Text style={styles.price}>
-              ${typeof watch.price === 'number' ? watch.price.toLocaleString() : 'N/A'}
-            </Text>
+            {/* Memoized price component */}
+            <PriceDisplay price={watch.price} />
           </View>
         </View>
       </View>
@@ -124,8 +196,13 @@ const WatchCardComponent = ({ watch, disableNavigation = false }: WatchCardProps
   );
 };
 
-// Memoize the entire component to prevent unnecessary re-renders
-export const WatchCard = memo(WatchCardComponent);
+// Memoize the entire component with a custom comparison function
+export const WatchCard = memo(WatchCardComponent, (prevProps, nextProps) => {
+  // Custom equality check, only re-render if essential props change
+  return prevProps.watch.id === nextProps.watch.id && 
+         prevProps.watch.likes === nextProps.watch.likes &&
+         prevProps.disableNavigation === nextProps.disableNavigation;
+});
 
 const styles = StyleSheet.create({
   cardWrapper: {
@@ -136,7 +213,6 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 400,
     alignSelf: 'center',
-    // Add overflow hidden to contain any potential layout shifts
     overflow: 'hidden',
     ...Platform.select({
       ios: {
@@ -161,10 +237,21 @@ const styles = StyleSheet.create({
     backgroundColor: '#F6F7F8',
     position: 'relative',
   },
-  image: {
-    height: '100%',
-    // Add specific dimensions to ensure consistent size
-    aspectRatio: 9 / 11,
+  accessoriesContainer: {
+    position: 'absolute',
+    bottom: 12,
+    left: 12,
+    flexDirection: 'row',
+    zIndex: 10,
+  },
+  accessoryIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(0, 45, 78, 0.8)',
+    marginRight: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   infoContainer: {
     padding: 16,

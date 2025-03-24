@@ -14,7 +14,7 @@ export function FavoriteButton() {
             onPress={() => router.push('/favorites')}
         >
             <Ionicons
-                name="heart-outline"
+                name="bookmark-outline"
                 size={25}
                 color="#000"
             />

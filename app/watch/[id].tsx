@@ -105,14 +105,7 @@ export default function DetailScreen() {
     { label: "Power Reserve", value: watch.powerReserve },
     { label: "Strap", value: watch.strap },
     { label: "Year", value: watch.year },
-    {
-      label: "Box",
-      value: watch.box !== undefined ? (watch.box ? "Yes" : "No") : null,
-    },
-    {
-      label: "Papers",
-      value: watch.papers !== undefined ? (watch.papers ? "Yes" : "No") : null,
-    },
+  
     { label: "Warranty", value: watch.warranty },
     {
       label: "Exhibition Caseback",
@@ -308,7 +301,7 @@ const styles = StyleSheet.create({
   },
   specsContainer: { marginTop: 84, paddingHorizontal: 3 },
   specRow: {
-    gap: 30,
+    gap: 15,
     flexDirection: "row",
     alignItems: "flex-start",
     paddingVertical: 12,

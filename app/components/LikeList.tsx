@@ -28,14 +28,14 @@ export const LikeList: React.FC<LikeListProps> = ({
     <View style={styles.container}>
       <View style={styles.contentWrapper}>
         <Ionicons
-          name={isLiked ? 'heart' : 'heart-outline'}
+          name={isLiked ? 'bookmark' : 'bookmark-outline'}
           size={15}
           color="#002d4e"
           style={styles.icon}
         />
         <Text style={styles.likeText}>
           {formatCount(initialLikes)}
-          <Text style={styles.label}> {initialLikes === 1 ? 'like' : 'likes'}</Text>
+          <Text style={styles.label}> {initialLikes === 1 ? 'Like' : 'Likes'}</Text>
         </Text>
       </View>
     </View>
