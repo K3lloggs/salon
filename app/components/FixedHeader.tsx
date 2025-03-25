@@ -64,11 +64,10 @@ function FixedHeaderComponent({
     setSearchInputText(text);
   };
 
+  // Handle search clear - FIXED: no longer triggers onSearchChange
   const handleClearSearch = () => {
     setSearchInputText('');
-    if (onSearchChange) {
-      onSearchChange('');
-    }
+    // Removed the onSearchChange call to prevent re-render
   };
 
   const handleSearchSubmit = () => {
@@ -158,7 +157,7 @@ function FixedHeaderComponent({
               </View>
               <TextInput
                 style={styles.searchInput}
-                placeholder="Search by brand, model, complication"
+                placeholder="Search"
                 placeholderTextColor="#999"
                 value={searchInputText}
                 onChangeText={handleTextChange}

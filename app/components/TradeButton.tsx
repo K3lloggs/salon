@@ -110,8 +110,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     textTransform: 'uppercase',
     fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
-    textShadowColor: 'rgba(0, 0, 0, 0.2)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
   },
 });
+
+export default TradeButton;

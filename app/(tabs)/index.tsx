@@ -9,39 +9,48 @@ import { Watch } from "../types/Watch";
 
 const ITEM_HEIGHT = 420; // Adjusted based on card dimensions and margins
 
+// Create a memoized WatchCard to prevent unnecessary re-renders
+const MemoizedWatchCard = React.memo(WatchCard);
+
 export default function AllScreen() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const { sortOption, setSortOption } = useSortContext();
   const { watches, loading } = useWatches(searchQuery, sortOption);
   const [refreshing, setRefreshing] = useState(false);
-  const flatListRef = useRef<FlatList<Watch>>(null);
-
+  const flatListRef = useRef<FlatList>(null);
+  
   // Ref for stable random sorting
   const randomOrderRef = useRef<Watch[] | null>(null);
+  
+  // Add a ref to track if this is the initial load (for scrolling)
+  const isInitialLoadRef = useRef(true);
 
   // Force initial sort option to be random on component mount
   useEffect(() => {
-    setSortOption("random");
+    setSortOption('random');
   }, [setSortOption]);
 
-  // Memoized sorting with additional sort options
+  // Apply sorting based on sortOption with stable random sorting
   const sortedWatches = useMemo(() => {
-    if (sortOption === "random") {
+    if (!watches || watches.length === 0) return [];
+    
+    if (sortOption === 'random') {
       if (!randomOrderRef.current || randomOrderRef.current.length !== watches.length) {
         randomOrderRef.current = [...watches].sort(() => Math.random() - 0.5);
       }
       return randomOrderRef.current;
     } else {
-      // Clear the random order when a different sort option is selected.
+      // Clear the random order when a different sort option is selected
       randomOrderRef.current = null;
-      if (sortOption === "highToLow") {
+      
+      if (sortOption === 'highToLow') {
         return [...watches].sort((a, b) => b.price - a.price);
-      } else if (sortOption === "lowToHigh") {
+      } else if (sortOption === 'lowToHigh') {
         return [...watches].sort((a, b) => a.price - b.price);
-      } else if (sortOption === "mostLiked") {
+      } else if (sortOption === 'mostLiked') {
         return [...watches].sort((a, b) => (b.likes || 0) - (a.likes || 0));
-      } else if (sortOption === "leastLiked") {
+      } else if (sortOption === 'leastLiked') {
         return [...watches].sort((a, b) => (a.likes || 0) - (b.likes || 0));
       }
     }
@@ -65,7 +74,7 @@ export default function AllScreen() {
 
   // When a filter option is selected, if it's null (clear filter), force random sorting.
   const handleFilterSelect = useCallback(
-    (option: SortOption) => {
+    (option: "lowToHigh" | "highToLow" | null) => {
       if (option === null) {
         setSortOption("random");
       } else {
@@ -86,10 +95,17 @@ export default function AllScreen() {
     [scrollToTop]
   );
 
-  // Removed auto scroll-to-top on every watches change to avoid interfering with interactions
+  // Prevent scrolling to top on the initial load
+  useEffect(() => {
+    if (isInitialLoadRef.current) {
+      isInitialLoadRef.current = false;
+      return;
+    }
+    scrollToTop();
+  }, [watches, scrollToTop]);
 
   const renderItem = useCallback(
-    ({ item }: { item: Watch }) => <WatchCard watch={item} />,
+    ({ item }: { item: Watch }) => <MemoizedWatchCard watch={item} />,
     []
   );
 
@@ -106,47 +122,46 @@ export default function AllScreen() {
 
   return (
     <View style={styles.container}>
-      <FixedHeader
-        showFavorites={true}
+      <FixedHeader 
+        title="Watch Salon"
         showSearch={true}
-        onSearchChange={handleSearchChange}
         searchQuery={searchQuery}
+        onSearchChange={handleSearchChange}
+        showFavorites={true}
         showFilter={true}
         onFilterToggle={toggleFilterDropdown}
         currentScreen="index"
       />
-
-      {/* Render FilterDropdown */}
-      <FilterDropdown
+      
+      <FilterDropdown 
         isVisible={showFilterDropdown}
         onSelect={handleFilterSelect}
         onClose={() => setShowFilterDropdown(false)}
       />
-
+      
       <FlatList
         ref={flatListRef}
         data={loading ? [] : sortedWatches}
         renderItem={renderItem}
         keyExtractor={keyExtractor}
-        initialNumToRender={4}
-        maxToRenderPerBatch={5}
-        windowSize={7}
+        initialNumToRender={8} // Increased for smoother scrolling
+        maxToRenderPerBatch={8} // Increased for smoother scrolling
+        windowSize={9} // Increased for more offscreen rendering
         updateCellsBatchingPeriod={50}
-        // Disabled removeClippedSubviews to avoid potential touch issues
-        removeClippedSubviews={false}
+        removeClippedSubviews={Platform.OS === 'android'} // Not on iOS for smoother transitions
         getItemLayout={getItemLayout}
         contentContainerStyle={styles.listContent}
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={["#002d4e"]}
-            tintColor="#002d4e"
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={onRefresh} 
+            tintColor="#002d4e" 
           />
         }
         showsVerticalScrollIndicator={false}
         maintainVisibleContentPosition={{
           minIndexForVisible: 0,
+          autoscrollToTopThreshold: 20, // Added for better position maintenance
         }}
       />
     </View>
@@ -156,10 +171,10 @@ export default function AllScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "#ffffff",
   },
   listContent: {
     paddingVertical: 12,
     paddingBottom: 20,
-  },
+  }
 });

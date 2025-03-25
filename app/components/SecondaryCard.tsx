@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useMemo, memo } from "react";
 import { View, Image, Animated, StyleSheet, Dimensions } from "react-native";
 import { Pagination } from "./Pagination";
 import { NewArrivalBadge } from "./NewArrivalBadge";
@@ -13,7 +13,7 @@ interface SecondaryCardProps {
     brand: string;
     model: string;
     price: number;
-    image: string[];
+    image: string[] | string;
     movement?: string;
     dial?: string;
     powerReserve?: string;
@@ -29,73 +29,117 @@ interface SecondaryCardProps {
   };
 }
 
-// Icons for Box and Papers
-const WatchAccessories = ({ watch }: { watch: any }) => {
-  if (!watch.box && !watch.papers) return null;
+// Memoized accessory icons component to prevent re-renders
+const WatchAccessories = memo(({ box, papers }: { box?: boolean; papers?: boolean }) => {
+  if (!box && !papers) return null;
   
   return (
-    <View style={styles.accessoriesContainer}>
-      {watch.box && (
+    <View style={styles.accessoriesContainer} pointerEvents="none">
+      {box && (
         <View style={styles.accessoryIcon}>
           <Ionicons name="cube-outline" size={18} color="#FFFFFF" />
         </View>
       )}
-      {watch.papers && (
+      {papers && (
         <View style={styles.accessoryIcon}>
           <Ionicons name="document-text-outline" size={18} color="#FFFFFF" />
         </View>
       )}
     </View>
   );
-};
+});
 
-export const SecondaryCard: React.FC<SecondaryCardProps> = ({ watch }) => {
+// Memoized image component for better performance
+const WatchImage = memo(({ uri }: { uri: string }) => (
+  <View style={styles.imageContainer}>
+    <Image 
+      source={{ uri }} 
+      style={styles.image} 
+      resizeMode="cover"
+      fadeDuration={0}
+      progressiveRenderingEnabled={true}
+    />
+  </View>
+));
+
+// Memoized badges component
+const BadgesDisplay = memo(({ newArrival, hold }: { newArrival?: boolean; hold?: boolean }) => {
+  if (!newArrival && !hold) return null;
+  
+  return (
+    <View style={styles.badgesContainer} pointerEvents="none">
+      {newArrival && <NewArrivalBadge />}
+      {hold && (
+        <View style={newArrival ? styles.stackedBadge : null}>
+          <OnHoldBadge />
+        </View>
+      )}
+    </View>
+  );
+});
+
+const SecondaryCardComponent: React.FC<SecondaryCardProps> = ({ watch }) => {
   const scrollX = useRef(new Animated.Value(0)).current;
-  const images = Array.isArray(watch.image) ? watch.image : [watch.image];
+  
+  // Memoize the images array to prevent re-creation on each render
+  const images = useMemo(() => 
+    Array.isArray(watch.image) ? watch.image : [watch.image], 
+    [watch.image]
+  );
+
+  // Memoize the scroll event to prevent re-creation
+  const handleScroll = useMemo(() => 
+    Animated.event(
+      [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+      { useNativeDriver: false }
+    ), 
+    [scrollX]
+  );
+
+  const showPagination = images.length > 1;
 
   return (
     <View style={styles.container}>
-      {/* Badges container with proper stacking */}
-      {(watch.newArrival || watch.hold) && (
-        <View style={styles.badgesContainer}>
-          {watch.newArrival && <NewArrivalBadge />}
-          {watch.hold && (
-            <View style={watch.newArrival ? styles.stackedBadge : null}>
-              <OnHoldBadge />
-            </View>
-          )}
-        </View>
-      )}
+      {/* Use memoized badges component */}
+      <BadgesDisplay newArrival={watch.newArrival} hold={watch.hold} />
       
-      <Animated.ScrollView
+      <Animated.FlatList
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-          { useNativeDriver: false }
-        )}
+        onScroll={handleScroll}
         scrollEventThrottle={16}
         decelerationRate="fast"
         snapToInterval={SCREEN_WIDTH}
         snapToAlignment="center"
-      >
-        {images.map((img, index) => (
-          <View key={index} style={styles.imageContainer}>
-            <Image source={{ uri: img }} style={styles.image} resizeMode="cover" />
-          </View>
-        ))}
-      </Animated.ScrollView>
+        data={images}
+        keyExtractor={(_, index) => `${watch.id}-image-${index}`}
+        renderItem={({ item }) => <WatchImage uri={item} />}
+        initialNumToRender={1}
+        maxToRenderPerBatch={2}
+        windowSize={3}
+        removeClippedSubviews={true}
+      />
 
-      {/* Box and Papers icons */}
-      <WatchAccessories watch={watch} />
+      {/* Use memoized accessories component */}
+      <WatchAccessories box={watch.box} papers={watch.papers} />
 
-      {images.length > 1 && (
-        <Pagination scrollX={scrollX} cardWidth={SCREEN_WIDTH} totalItems={images.length} />
+      {/* Only render pagination if needed */}
+      {showPagination && (
+        <View style={styles.paginationContainer} pointerEvents="none">
+          <Pagination 
+            scrollX={scrollX} 
+            cardWidth={SCREEN_WIDTH} 
+            totalItems={images.length} 
+          />
+        </View>
       )}
     </View>
   );
 };
+
+// Memoize the entire component
+export const SecondaryCard = memo(SecondaryCardComponent);
 
 const styles = StyleSheet.create({
   container: {
@@ -122,7 +166,7 @@ const styles = StyleSheet.create({
     zIndex: 20,
   },
   stackedBadge: {
-    marginTop: 26, // Increased space between badges when stacked
+    marginTop: 26, // Space between badges when stacked
   },
   accessoriesContainer: {
     position: "absolute",
@@ -139,6 +183,13 @@ const styles = StyleSheet.create({
     marginRight: 8,
     alignItems: "center",
     justifyContent: "center",
+  },
+  paginationContainer: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
   },
 });
 

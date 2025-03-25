@@ -16,7 +16,6 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
-import { LinearGradient } from 'expo-linear-gradient';
 import { FixedHeader } from '../components/FixedHeader';
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -27,20 +26,6 @@ import { db } from '../../firebaseConfig';
 import { Watch } from '../types/Watch';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
-// Define gradient colors for consistent use throughout the app
-// Updated to more subtle colors with better contrast
-const GRADIENT_COLORS: [string, string, string] = ['#ffffff', '#f2f8fd', '#e5f1fa'];
-
-// Change gradient direction from left-to-right to top-left to bottom-right
-const GRADIENT_START = { x: 0, y: 0 }; // Top-left
-const GRADIENT_END = { x: 1, y: 1 }; // Bottom-right
-
-// Button gradient colors with more contrast
-const BUTTON_GRADIENT_COLORS: [string, string] = ['#003a64', '#002d4e'];
-
-// Step indicator gradient for better visibility
-const STEP_GRADIENT_COLORS: [string, string] = ['#003a64', '#002d4e'];
 
 type Mode = 'trade' | 'sell' | 'request';
 
@@ -273,12 +258,7 @@ export default function TradeScreen() {
   }, [activeMode]);
 
   return (
-    <LinearGradient
-      colors={GRADIENT_COLORS}
-      start={GRADIENT_START}
-      end={GRADIENT_END}
-      style={styles.mainContainer}
-    >
+    <View style={styles.mainContainer}>
       <StatusBar backgroundColor="#FFFFFF" barStyle="dark-content" />
       <FixedHeader 
         title={headerText}
@@ -297,10 +277,7 @@ export default function TradeScreen() {
           <View style={styles.stepIndicator}>
             <View style={styles.stepLineBackground} />
             <View style={styles.stepLineProgressContainer}>
-              <LinearGradient
-                colors={STEP_GRADIENT_COLORS}
-                start={GRADIENT_START}
-                end={GRADIENT_END}
+              <View
                 style={[
                   styles.stepLineProgress,
                   currentStep === 1 
@@ -311,26 +288,16 @@ export default function TradeScreen() {
             </View>
             <View style={styles.stepsRow}>
               <View style={styles.stepCircleContainer}>
-                <LinearGradient
-                  colors={STEP_GRADIENT_COLORS}
-                  start={GRADIENT_START}
-                  end={GRADIENT_END}
-                  style={styles.stepCircle}
-                >
+                <View style={styles.stepCircle}>
                   <Text style={styles.stepNumberActive}>1</Text>
-                </LinearGradient>
+                </View>
               </View>
               
               <View style={styles.stepCircleContainer}>
                 {currentStep >= 2 ? (
-                  <LinearGradient
-                    colors={STEP_GRADIENT_COLORS}
-                    start={GRADIENT_START}
-                    end={GRADIENT_END}
-                    style={styles.stepCircle}
-                  >
+                  <View style={styles.stepCircle}>
                     <Text style={styles.stepNumberActive}>2</Text>
-                  </LinearGradient>
+                  </View>
                 ) : (
                   <View style={styles.inactiveStep}>
                     <Text style={styles.stepNumberInactive}>2</Text>
@@ -478,15 +445,10 @@ export default function TradeScreen() {
                 onPress={handleBackPress}
                 activeOpacity={0.85}
               >
-                <LinearGradient
-                  colors={['#ffffff', '#f5f5f5']}
-                  start={GRADIENT_START}
-                  end={GRADIENT_END}
-                  style={styles.backButtonGradient}
-                >
+                <View style={styles.backButtonContent}>
                   <Ionicons name="arrow-back" size={18} color="#002d4e" />
                   <Text style={styles.backButtonText}>Back</Text>
-                </LinearGradient>
+                </View>
               </TouchableOpacity>
             )}
             <TouchableOpacity
@@ -498,12 +460,7 @@ export default function TradeScreen() {
               onPress={handleSubmit}
               disabled={!canProceed || isSubmitting}
             >
-              <LinearGradient
-                colors={BUTTON_GRADIENT_COLORS}
-                start={GRADIENT_START}
-                end={GRADIENT_END}
-                style={styles.primaryButtonGradient}
-              >
+              <View style={styles.primaryButtonContent}>
                 {isSubmitting ? (
                   <ActivityIndicator color="#FFFFFF" />
                 ) : (
@@ -517,18 +474,19 @@ export default function TradeScreen() {
                     />
                   </>
                 )}
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </LinearGradient>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
+    backgroundColor: '#ffffff',
   },
   keyboardAvoid: {
     flex: 1,
@@ -565,6 +523,7 @@ const styles = StyleSheet.create({
   stepLineProgress: {
     height: 4,
     borderRadius: 2,
+    backgroundColor: '#002d4e',
   },
   stepsRow: {
     flexDirection: 'row',
@@ -594,6 +553,7 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#002d4e',
   },
   inactiveStep: {
     backgroundColor: '#FFFFFF',
@@ -790,8 +750,9 @@ const styles = StyleSheet.create({
   primaryButton: {
     borderRadius: 12,
     overflow: 'hidden',
+    backgroundColor: '#002d4e',
   },
-  primaryButtonGradient: {
+  primaryButtonContent: {
     paddingVertical: 16,
     paddingHorizontal: 24,
     flexDirection: 'row',
@@ -815,8 +776,11 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     flex: 1,
     marginRight: 6,
+    backgroundColor: '#f5f5f5',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
   },
-  backButtonGradient: {
+  backButtonContent: {
     paddingVertical: 12,
     paddingHorizontal: 16,
     flexDirection: 'row',
