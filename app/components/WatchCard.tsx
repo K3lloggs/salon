@@ -75,10 +75,18 @@ const OptimizedImage = memo(
 );
 
 // Create the price component separately to avoid unnecessary re-renders
-const PriceDisplay = memo(({ price }: { price: number | string }) => (
-  <Text style={styles.price}>
-    ${typeof price === "number" ? price.toLocaleString() : "N/A"}
-  </Text>
+const PriceDisplay = memo(({ price, msrp }: { price: number | string; msrp?: number }) => (
+  <View style={styles.priceContainer}>
+    {msrp ? (
+      <View style={styles.msrpContainer}>
+        <Text style={styles.msrpLabel}>MSRP: </Text>
+        <Text style={styles.msrpValue}>${msrp.toLocaleString()}</Text>
+      </View>
+    ) : null}
+    <Text style={styles.price}>
+      ${typeof price === "number" ? price.toLocaleString() : "N/A"}
+    </Text>
+  </View>
 ));
 
 const WatchCardComponent = ({ watch, disableNavigation = false }: WatchCardProps) => {
@@ -203,7 +211,7 @@ const WatchCardComponent = ({ watch, disableNavigation = false }: WatchCardProps
             <Text style={styles.model} numberOfLines={2}>
               {watch.model}
             </Text>
-            <PriceDisplay price={watch.price} />
+            <PriceDisplay price={watch.price} msrp={watch.msrp} />
           </View>
         </View>
       </View>
@@ -282,20 +290,17 @@ const styles = StyleSheet.create({
   modelPriceContainer: {
     position: "relative",
     marginTop: 4,
-    minHeight: 24,
+    minHeight: 44, // Increased to accommodate larger MSRP and price
   },
   model: {
     fontSize: 18,
     fontWeight: "500",
     color: "#002d4e",
     letterSpacing: 0.3,
-    paddingRight: 90,
+    paddingRight: 120, // Increased to account for MSRP + price
   },
   price: {
-    position: "absolute",
-    right: 0,
-    top: 0,
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "700",
     color: "#002d4e",
     letterSpacing: 0.3,
@@ -308,6 +313,29 @@ const styles = StyleSheet.create({
   },
   stackedBadge: {
     marginTop: 26, // Space between badges when stacked
+  },
+  priceContainer: {
+    position: "absolute",
+    right: 0,
+    top: 0,
+    alignItems: "flex-end",
+  },
+  msrpContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 3,
+  },
+  msrpLabel: {
+    fontSize: 14,
+    color: "#002d4e",
+    opacity: 0.8,
+  },
+  msrpValue: {
+    fontSize: 14,
+    color: "#002d4e",
+    opacity: 0.8,
+    textDecorationLine: "line-through",
+    fontWeight: "700",
   },
 });
 

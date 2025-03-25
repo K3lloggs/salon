@@ -210,6 +210,10 @@ export default function DetailScreen() {
             <View style={[styles.stripeButton, styles.soldButton]}>
               <Text style={styles.stripeButtonText}>Sold</Text>
             </View>
+          ) : watch.hold ? (
+            <View style={[styles.stripeButton, styles.onHoldButton]}>
+              <Text style={styles.stripeButtonText}>On Hold</Text>
+            </View>
           ) : (
             <StripeCheckout
               watch={watch}
@@ -374,4 +378,5 @@ const styles = StyleSheet.create({
   },
   stripeButtonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
   soldButton: { backgroundColor: "#888" },
+  onHoldButton: { backgroundColor: "#002d4e" }, // Same dark blue as the badge for consistency
 });
