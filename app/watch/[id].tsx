@@ -135,15 +135,18 @@ export default function DetailScreen() {
 
           <BlurView intensity={40} tint="light" style={styles.detailsPanel}>
             <View style={styles.headerSection}>
-              {/* Brand and LikeList on the same row */}
+              {/* Brand name in its own container */}
               <View style={styles.brandContainer}>
                 <Text style={styles.brand} numberOfLines={1} ellipsizeMode="tail">
                   {watch.brand}
                 </Text>
-                <View style={styles.likeListWrapper}>
-                  <LikeList watchId={watch.id} initialLikes={watch.likes || 0} />
-                </View>
               </View>
+              
+              {/* LikeList in its own container */}
+              <View style={styles.likeListContainer}>
+                <LikeList watchId={watch.id} initialLikes={watch.likes || 0} />
+              </View>
+              
               <Text style={styles.model}>{watch.model}</Text>
               <View style={styles.infoContainer}>
                 {watch.referenceNumber && (
@@ -247,26 +250,30 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   descriptionText: { fontSize: 15, color: "#002d4e", lineHeight: 22 },
-  headerSection: { marginBottom: 32, paddingTop: 8 },
-  /* BRAND & LIKELIST */
+  headerSection: { 
+    marginBottom: 32, 
+    paddingTop: 8,
+    position: 'relative', // Added to support absolute positioning
+  },
+  /* BRAND & LIKELIST - Fixed to prevent text cutoff */
   brandContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 8,
+    width: '100%',
+    paddingRight: 60, // Make space for the like list on the right
+    marginBottom: 0,
   },
   brand: { 
     fontSize: 30, 
     fontWeight: "700", 
     color: "#002d4e", 
     letterSpacing: -0.5,
-    flex: 1, // Allow the brand text to shrink
-    marginRight: 10, // Add some spacing between brand and like button
+    width: '100%', // Brand can use full width of its container
   },
-  likeListWrapper: {
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 16, // Positions the like list lower to align with brand
+  likeListContainer: {
+    position: 'absolute',
+    right: 0,
+    top: 8,
+    zIndex: 1, // Ensure it stays on top
+    alignItems: 'flex-end',
   },
   model: {
     fontSize: 20,
@@ -274,6 +281,7 @@ const styles = StyleSheet.create({
     color: "#002d4e",
     letterSpacing: -0.3,
     marginBottom: 12,
+    marginTop: 4,
     flexWrap: "wrap",
   },
   infoContainer: { marginBottom: 12 },

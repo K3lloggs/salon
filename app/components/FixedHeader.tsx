@@ -1,4 +1,4 @@
-import React, { useState, memo } from 'react';
+import React, { useState, useRef, memo } from 'react';
 import {
   View,
   StyleSheet,
@@ -8,10 +8,15 @@ import {
   Platform
 } from 'react-native';
 import { Ionicons, Feather } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, usePathname } from 'expo-router';
+import { SortOption } from '../context/SortContext';
+import { Watch } from '../types/Watch';
+import ShareButton from './ShareButton';
 
 interface FixedHeaderProps {
   title?: string;
+  watch?: Watch;
+  onBack?: () => void;
   showBackButton?: boolean;
   showSearch?: boolean;
   showFavorites?: boolean;
@@ -19,20 +24,41 @@ interface FixedHeaderProps {
   searchQuery?: string;
   onSearchChange?: (query: string) => void;
   onFilterToggle?: () => void;
+  currentScreen?: 'index' | 'brands' | 'newArrivals' | 'other';
 }
 
 function FixedHeaderComponent({
   title = "Watch Salon",
+  watch,
   showBackButton = false,
   showSearch = false,
   showFavorites = false,
   showFilter = false,
   searchQuery = '',
   onSearchChange,
-  onFilterToggle
+  onFilterToggle,
+  onBack,
+  currentScreen = 'other'
 }: FixedHeaderProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const [searchInputText, setSearchInputText] = useState(searchQuery);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const filterButtonRef = useRef(null);
+  const [filterButtonLayout, setFilterButtonLayout] = useState(null);
+  const currentPathRef = useRef(pathname);
+
+  // Update search input text when prop changes
+  React.useEffect(() => {
+    setSearchInputText(searchQuery);
+  }, [searchQuery]);
+
+  // Track path changes
+  React.useEffect(() => {
+    if (pathname !== currentPathRef.current) {
+      currentPathRef.current = pathname;
+    }
+  }, [pathname]);
 
   const handleTextChange = (text: string) => {
     setSearchInputText(text);
@@ -52,7 +78,31 @@ function FixedHeaderComponent({
   };
 
   const handleBackNavigation = () => {
-    router.back();
+    if (onBack) {
+      onBack();
+    } else {
+      router.back();
+    }
+  };
+
+  const handleNavigation = (routePath: string) => {
+    router.push(routePath as any);
+  };
+
+  const toggleFilter = () => {
+    // Measure the filter button position before opening the dropdown
+    if (!isFilterOpen && filterButtonRef.current) {
+      filterButtonRef.current.measure((x, y, width, height, pageX, pageY) => {
+        setFilterButtonLayout({ x: pageX, y: pageY, width, height });
+        setIsFilterOpen(true);
+      });
+    } else {
+      setIsFilterOpen(!isFilterOpen);
+    }
+    
+    if (onFilterToggle) {
+      onFilterToggle();
+    }
   };
 
   return (
@@ -74,7 +124,7 @@ function FixedHeaderComponent({
           {showFavorites && (
             <TouchableOpacity
               style={styles.iconButton}
-              onPress={() => router.push('/favorites')}
+              onPress={() => handleNavigation('/favorites')}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               accessibilityLabel="Favorites"
               activeOpacity={0.7}
@@ -85,8 +135,9 @@ function FixedHeaderComponent({
 
           {showFilter && (
             <TouchableOpacity
+              ref={filterButtonRef}
               style={styles.iconButton}
-              onPress={onFilterToggle}
+              onPress={toggleFilter}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               accessibilityLabel="Filter options"
               accessibilityRole="button"
@@ -114,6 +165,7 @@ function FixedHeaderComponent({
                 onSubmitEditing={handleSearchSubmit}
                 returnKeyType="search"
                 autoCapitalize="none"
+                blurOnSubmit={false}
               />
               {searchInputText ? (
                 <TouchableOpacity
@@ -127,6 +179,16 @@ function FixedHeaderComponent({
               ) : null}
             </View>
           ) : null}
+          
+          {watch && (
+            <ShareButton
+              title={`Check out this ${watch.brand} ${watch.model}`}
+              message={`I found this amazing ${watch.brand} ${watch.model} on Watch Salon`}
+              size={22}
+              color="#002d4e"
+              style={styles.iconButton}
+            />
+          )}
         </View>
       </View>
     </SafeAreaView>
@@ -162,8 +224,9 @@ const styles = StyleSheet.create({
   },
   rightSection: {
     flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
   },
   iconButton: {
     padding: 8, // Reduced padding
@@ -189,12 +252,13 @@ const styles = StyleSheet.create({
     }),
   },
   searchContainer: {
-    width: '100%',
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#f7f7f7',
     borderRadius: 8, // Matching the buttons
     height: 42, // Matching the buttons
+    marginRight: 6,
     ...Platform.select({
       ios: {
         shadowColor: '#002d4e',
