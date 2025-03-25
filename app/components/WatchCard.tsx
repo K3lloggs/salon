@@ -173,33 +173,34 @@ const WatchCardComponent = ({ watch, disableNavigation = false }: WatchCardProps
             key={`watch-${watch.id}`}
           />
 
+          {/* Wrap all overlays in a single absoluteFill view */}
           <View style={StyleSheet.absoluteFill}>
-            {/* Elements that should not be clickable */}
-            <View pointerEvents="none">
-              {/* Badges section with proper stacking */}
-              {(watch.newArrival || watch.hold) && (
-                <View style={styles.badgesContainer}>
-                  {watch.newArrival && <NewArrivalBadge />}
-                  {watch.hold && <View style={watch.newArrival ? styles.stackedBadge : null}>
-                    <OnHoldBadge />
-                  </View>}
-                </View>
-              )}
-              
-              {showPagination && (
+            {/* Badges section with proper stacking */}
+            {(watch.newArrival || watch.hold) && (
+              <View style={styles.badgesContainer} pointerEvents="none">
+                {watch.newArrival && <NewArrivalBadge />}
+                {watch.hold && <View style={watch.newArrival ? styles.stackedBadge : null}>
+                  <OnHoldBadge />
+                </View>}
+              </View>
+            )}
+            
+            {/* LikeCounter */}
+            <LikeCounter watch={watch} initialLikes={watch.likes || 0} />
+            
+            {/* WatchAccessories (note: this component already has pointerEvents="none") */}
+            <WatchAccessories box={watch.box} papers={watch.papers} />
+            
+            {/* Pagination */}
+            {showPagination && (
+              <View style={styles.paginationContainer} pointerEvents="none">
                 <Pagination
                   scrollX={scrollX}
                   cardWidth={cardWidth || 400}
                   totalItems={images.length}
                 />
-              )}
-            </View>
-            
-            {/* LikeCounter remains clickable */}
-            <LikeCounter watch={watch} initialLikes={watch.likes || 0} />
-            
-            {/* WatchAccessories already has pointerEvents="none" in its own component */}
-            <WatchAccessories box={watch.box} papers={watch.papers} />
+              </View>
+            )}
           </View>
         </View>
 
@@ -308,11 +309,18 @@ const styles = StyleSheet.create({
   badgesContainer: {
     position: "absolute",
     top: 12,
-    left:0,
+    left: 0,
     zIndex: 10,
   },
   stackedBadge: {
     marginTop: 26, // Space between badges when stacked
+  },
+  paginationContainer: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
   },
   priceContainer: {
     position: "absolute",
