@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect, memo } from 'react';
 import { View, TouchableOpacity, Text, StyleSheet, Animated, Dimensions, Platform, ViewStyle } from 'react-native';
-import { useSortContext } from '../context/SortContext';
 import { Ionicons } from '@expo/vector-icons';
 import { SortOption } from '../context/SortContext';
 
@@ -8,9 +7,15 @@ interface FilterDropdownProps {
   isVisible: boolean;
   onSelect: (option: SortOption) => void;
   onClose: () => void;
+  filterButtonLayout?: { x: number; y: number; width: number; height: number };
 }
 
-function FilterDropdownComponent({ isVisible, onSelect, onClose }: FilterDropdownProps) {
+function FilterDropdownComponent({ 
+  isVisible, 
+  onSelect, 
+  onClose,
+  filterButtonLayout 
+}: FilterDropdownProps) {
   const dropdownAnim = useRef(new Animated.Value(0)).current;
   const backdropAnim = useRef(new Animated.Value(0)).current;
   const windowHeight = Dimensions.get('window').height;
@@ -76,6 +81,14 @@ function FilterDropdownComponent({ isVisible, onSelect, onClose }: FilterDropdow
 
   if (!isVisible) return null;
 
+  // Calculate dropdown position based on filter button layout
+  const dropdownPosition = {
+    // If we have the filter button's layout, position the dropdown above it
+    // with its left edge aligned with the button's left edge
+    top: filterButtonLayout ? filterButtonLayout.y + filterButtonLayout.height + 4 : 66,
+    left: filterButtonLayout ? filterButtonLayout.x : 16
+  };
+
   return (
     <View style={styles.container}>
       <Animated.View 
@@ -89,7 +102,14 @@ function FilterDropdownComponent({ isVisible, onSelect, onClose }: FilterDropdow
         />
       </Animated.View>
       
-      <Animated.View style={[styles.dropdown, animatedStyle]}>
+      <Animated.View 
+        style={[
+          styles.dropdown, 
+          animatedStyle,
+          // Apply dynamic positioning
+          { top: dropdownPosition.top, left: dropdownPosition.left }
+        ]}
+      >
         <View style={styles.dropdownHeader}>
           <Text style={styles.dropdownTitle}>Sort Options</Text>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
@@ -177,8 +197,7 @@ const styles = StyleSheet.create({
   },
   dropdown: {
     position: 'absolute',
-    top: 78, // Position just below the header (76px height) with small gap
-    right: 16,
+    // Position is set dynamically
     width: 250,
     backgroundColor: '#fff',
     borderRadius: 12,

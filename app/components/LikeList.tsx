@@ -53,10 +53,12 @@ const styles = StyleSheet.create({
   contentWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 6,
+    paddingVertical: 8,
     paddingHorizontal: 12,
+    
   },
   icon: {
+    
     marginRight: 6,
     opacity: 0.9,
     color: '#002d4e',
