@@ -2,6 +2,7 @@ import React, { useRef } from "react";
 import { View, Image, Animated, StyleSheet, Dimensions } from "react-native";
 import { Pagination } from "./Pagination";
 import { NewArrivalBadge } from "./NewArrivalBadge";
+import { OnHoldBadge } from "./HoldBadge";
 import { Ionicons } from '@expo/vector-icons';
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -23,6 +24,7 @@ interface SecondaryCardProps {
     caseMaterial?: string;
     caseDiameter?: string;
     newArrival?: boolean;
+    hold?: boolean;
     [key: string]: any;
   };
 }
@@ -53,7 +55,18 @@ export const SecondaryCard: React.FC<SecondaryCardProps> = ({ watch }) => {
 
   return (
     <View style={styles.container}>
-      {watch.newArrival && <NewArrivalBadge />}
+      {/* Badges container with proper stacking */}
+      {(watch.newArrival || watch.hold) && (
+        <View style={styles.badgesContainer}>
+          {watch.newArrival && <NewArrivalBadge />}
+          {watch.hold && (
+            <View style={watch.newArrival ? styles.stackedBadge : null}>
+              <OnHoldBadge />
+            </View>
+          )}
+        </View>
+      )}
+      
       <Animated.ScrollView
         horizontal
         pagingEnabled
@@ -101,6 +114,15 @@ const styles = StyleSheet.create({
   image: {
     width: "100%",
     height: "100%",
+  },
+  badgesContainer: {
+    position: "absolute",
+    top: 12,
+    left: 12,
+    zIndex: 20,
+  },
+  stackedBadge: {
+    marginTop: 26, // Increased space between badges when stacked
   },
   accessoriesContainer: {
     position: "absolute",

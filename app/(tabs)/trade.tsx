@@ -1,9 +1,3 @@
-// Fix 1: Correct the step line progress gradient
-// The stepLineProgress style needs a proper height and the gradient should fill it properly
-
-// Fix 2: Fix the back button gradient and shape
-// Currently the gradient is complex with SVG, and we need to simplify it
-
 import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
@@ -35,10 +29,18 @@ import { Watch } from '../types/Watch';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // Define gradient colors for consistent use throughout the app
-// Using tuple type to satisfy LinearGradient's type requirements
-const GRADIENT_COLORS: [string, string, ...string[]] = ['#003d66', '#002d4e'];
-const GRADIENT_START = { x: 0, y: 0 };
-const GRADIENT_END = { x: 1, y: 0 };
+// Updated to more subtle colors with better contrast
+const GRADIENT_COLORS: [string, string, string] = ['#ffffff', '#f2f8fd', '#e5f1fa'];
+
+// Change gradient direction from left-to-right to top-left to bottom-right
+const GRADIENT_START = { x: 0, y: 0 }; // Top-left
+const GRADIENT_END = { x: 1, y: 1 }; // Bottom-right
+
+// Button gradient colors with more contrast
+const BUTTON_GRADIENT_COLORS: [string, string] = ['#003a64', '#002d4e'];
+
+// Step indicator gradient for better visibility
+const STEP_GRADIENT_COLORS: [string, string] = ['#003a64', '#002d4e'];
 
 type Mode = 'trade' | 'sell' | 'request';
 
@@ -243,7 +245,7 @@ export default function TradeScreen() {
 
   const canProceed = useMemo(() => {
     if (currentStep === 1) {
-      return !!formData.photo; // Photo is now required
+      return !!formData.photo;
     } else {
       return !!formData.phoneNumber && !!formData.email;
     }
@@ -271,7 +273,12 @@ export default function TradeScreen() {
   }, [activeMode]);
 
   return (
-    <View style={styles.mainContainer}>
+    <LinearGradient
+      colors={GRADIENT_COLORS}
+      start={GRADIENT_START}
+      end={GRADIENT_END}
+      style={styles.mainContainer}
+    >
       <StatusBar backgroundColor="#FFFFFF" barStyle="dark-content" />
       <FixedHeader 
         title={headerText}
@@ -286,15 +293,12 @@ export default function TradeScreen() {
           contentContainerStyle={styles.scrollContainer}
           showsVerticalScrollIndicator={false}
         >
-          {/* Improved Step Indicator Implementation */}
+          {/* Step Indicator */}
           <View style={styles.stepIndicator}>
-            {/* First we place the background line */}
             <View style={styles.stepLineBackground} />
-            
-            {/* Then we add the progress line with exact positioning */}
             <View style={styles.stepLineProgressContainer}>
               <LinearGradient
-                colors={GRADIENT_COLORS}
+                colors={STEP_GRADIENT_COLORS}
                 start={GRADIENT_START}
                 end={GRADIENT_END}
                 style={[
@@ -305,12 +309,10 @@ export default function TradeScreen() {
                 ]}
               />
             </View>
-            
-            {/* Finally we add the step circles on top */}
             <View style={styles.stepsRow}>
               <View style={styles.stepCircleContainer}>
                 <LinearGradient
-                  colors={GRADIENT_COLORS}
+                  colors={STEP_GRADIENT_COLORS}
                   start={GRADIENT_START}
                   end={GRADIENT_END}
                   style={styles.stepCircle}
@@ -322,7 +324,7 @@ export default function TradeScreen() {
               <View style={styles.stepCircleContainer}>
                 {currentStep >= 2 ? (
                   <LinearGradient
-                    colors={GRADIENT_COLORS}
+                    colors={STEP_GRADIENT_COLORS}
                     start={GRADIENT_START}
                     end={GRADIENT_END}
                     style={styles.stepCircle}
@@ -491,14 +493,13 @@ export default function TradeScreen() {
               style={[
                 styles.primaryButton, 
                 !canProceed && styles.primaryButtonDisabled,
-                // Adjust width based on whether back button is visible
                 currentStep === 2 ? { flex: 2 } : { flex: 1 }
               ]}
               onPress={handleSubmit}
               disabled={!canProceed || isSubmitting}
             >
               <LinearGradient
-                colors={GRADIENT_COLORS}
+                colors={BUTTON_GRADIENT_COLORS}
                 start={GRADIENT_START}
                 end={GRADIENT_END}
                 style={styles.primaryButtonGradient}
@@ -521,14 +522,13 @@ export default function TradeScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
   },
   keyboardAvoid: {
     flex: 1,
@@ -538,7 +538,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
     paddingTop: 16,
   },
-  // Progress Indicator - Fixed implementation
+  // Progress Indicator
   stepIndicator: {
     width: '100%',
     marginBottom: 28,
@@ -563,8 +563,8 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   stepLineProgress: {
-    height: 2,
-    borderRadius: 1,
+    height: 4,
+    borderRadius: 2,
   },
   stepsRow: {
     flexDirection: 'row',
@@ -809,16 +809,16 @@ const styles = StyleSheet.create({
   primaryButtonIcon: {
     marginLeft: 8,
   },
+  // Back Button (Simplified)
   backButton: {
-    borderRadius: 12,
+    borderRadius: 8,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
     flex: 1,
+    marginRight: 6,
   },
   backButtonGradient: {
-    paddingVertical: 16,
-    paddingHorizontal: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

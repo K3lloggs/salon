@@ -14,6 +14,7 @@ import { Watch } from "../types/Watch";
 import { NewArrivalBadge } from "./NewArrivalBadge";
 import { Pagination } from "./Pagination";
 import LikeCounter from "./LikeCounter";
+import { OnHoldBadge } from "./HoldBadge";
 import { Ionicons } from "@expo/vector-icons";
 
 interface WatchCardProps {
@@ -164,18 +165,33 @@ const WatchCardComponent = ({ watch, disableNavigation = false }: WatchCardProps
             key={`watch-${watch.id}`}
           />
 
-          {/* Wrap overlays in a view with pointerEvents="none" so they do not intercept touches */}
-          <View style={StyleSheet.absoluteFill} pointerEvents="none">
-            {watch.newArrival && <NewArrivalBadge />}
+          <View style={StyleSheet.absoluteFill}>
+            {/* Elements that should not be clickable */}
+            <View pointerEvents="none">
+              {/* Badges section with proper stacking */}
+              {(watch.newArrival || watch.hold) && (
+                <View style={styles.badgesContainer}>
+                  {watch.newArrival && <NewArrivalBadge />}
+                  {watch.hold && <View style={watch.newArrival ? styles.stackedBadge : null}>
+                    <OnHoldBadge />
+                  </View>}
+                </View>
+              )}
+              
+              {showPagination && (
+                <Pagination
+                  scrollX={scrollX}
+                  cardWidth={cardWidth || 400}
+                  totalItems={images.length}
+                />
+              )}
+            </View>
+            
+            {/* LikeCounter remains clickable */}
             <LikeCounter watch={watch} initialLikes={watch.likes || 0} />
+            
+            {/* WatchAccessories already has pointerEvents="none" in its own component */}
             <WatchAccessories box={watch.box} papers={watch.papers} />
-            {showPagination && (
-              <Pagination
-                scrollX={scrollX}
-                cardWidth={cardWidth || 400}
-                totalItems={images.length}
-              />
-            )}
           </View>
         </View>
 
@@ -283,6 +299,15 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#002d4e",
     letterSpacing: 0.3,
+  },
+  badgesContainer: {
+    position: "absolute",
+    top: 12,
+    left:0,
+    zIndex: 10,
+  },
+  stackedBadge: {
+    marginTop: 26, // Space between badges when stacked
   },
 });
 
