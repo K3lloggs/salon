@@ -1,4 +1,4 @@
-import React, { useRef, useMemo, memo } from "react";
+import React, { useRef } from "react";
 import { View, Image, Animated, StyleSheet, Dimensions } from "react-native";
 import { Pagination } from "./Pagination";
 import { NewArrivalBadge } from "./NewArrivalBadge";
@@ -6,6 +6,7 @@ import { OnHoldBadge } from "./HoldBadge";
 import { Ionicons } from '@expo/vector-icons';
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const PLACEHOLDER_IMAGE = 'https://via.placeholder.com/400x450/F6F7F8/F6F7F8';
 
 interface SecondaryCardProps {
   watch: {
@@ -29,104 +30,81 @@ interface SecondaryCardProps {
   };
 }
 
-// Memoized accessory icons component to prevent re-renders
-const WatchAccessories = memo(({ box, papers }: { box?: boolean; papers?: boolean }) => {
-  if (!box && !papers) return null;
-  
-  return (
-    <View style={styles.accessoriesContainer} pointerEvents="none">
-      {box && (
-        <View style={styles.accessoryIcon}>
-          <Ionicons name="cube-outline" size={18} color="#FFFFFF" />
-        </View>
-      )}
-      {papers && (
-        <View style={styles.accessoryIcon}>
-          <Ionicons name="document-text-outline" size={18} color="#FFFFFF" />
-        </View>
-      )}
-    </View>
-  );
-});
-
-// Memoized image component for better performance
-const WatchImage = memo(({ uri }: { uri: string }) => (
-  <View style={styles.imageContainer}>
-    <Image 
-      source={{ uri }} 
-      style={styles.image} 
-      resizeMode="cover"
-      fadeDuration={0}
-      progressiveRenderingEnabled={true}
-    />
-  </View>
-));
-
-// Memoized badges component
-const BadgesDisplay = memo(({ newArrival, hold }: { newArrival?: boolean; hold?: boolean }) => {
-  if (!newArrival && !hold) return null;
-  
-  return (
-    <View style={styles.badgesContainer} pointerEvents="none">
-      {newArrival && <NewArrivalBadge />}
-      {hold && (
-        <View style={newArrival ? styles.stackedBadge : null}>
-          <OnHoldBadge />
-        </View>
-      )}
-    </View>
-  );
-});
-
-const SecondaryCardComponent: React.FC<SecondaryCardProps> = ({ watch }) => {
+function SecondaryCardComponent({ watch }: SecondaryCardProps) {
   const scrollX = useRef(new Animated.Value(0)).current;
   
-  // Memoize the images array to prevent re-creation on each render
-  const images = useMemo(() => 
-    Array.isArray(watch.image) ? watch.image : [watch.image], 
-    [watch.image]
-  );
-
-  // Memoize the scroll event to prevent re-creation
-  const handleScroll = useMemo(() => 
-    Animated.event(
-      [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-      { useNativeDriver: false }
-    ), 
-    [scrollX]
-  );
-
+  // Process images array with fallback
+  const images = Array.isArray(watch.image) && watch.image.length > 0 
+    ? watch.image 
+    : typeof watch.image === 'string' && watch.image 
+      ? [watch.image] 
+      : [PLACEHOLDER_IMAGE];
+  
   const showPagination = images.length > 1;
 
   return (
     <View style={styles.container}>
-      {/* Use memoized badges component */}
-      <BadgesDisplay newArrival={watch.newArrival} hold={watch.hold} />
+      {/* Badges */}
+      {(watch.newArrival || watch.hold) && (
+        <View style={styles.badgesContainer}>
+          {watch.newArrival && <NewArrivalBadge />}
+          {watch.hold && (
+            <View style={watch.newArrival ? styles.stackedBadge : null}>
+              <OnHoldBadge />
+            </View>
+          )}
+        </View>
+      )}
       
+      {/* Image carousel */}
       <Animated.FlatList
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
-        onScroll={handleScroll}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+          { useNativeDriver: false }
+        )}
         scrollEventThrottle={16}
         decelerationRate="fast"
         snapToInterval={SCREEN_WIDTH}
         snapToAlignment="center"
         data={images}
-        keyExtractor={(_, index) => `${watch.id}-image-${index}`}
-        renderItem={({ item }) => <WatchImage uri={item} />}
+        keyExtractor={(_, index) => `${watch.id}-detail-${index}`}
+        renderItem={({ item }) => (
+          <View style={styles.imageContainer}>
+            <Image 
+              source={{ uri: item }} 
+              style={styles.image}
+              resizeMode="cover"
+              fadeDuration={0}
+              defaultSource={{ uri: PLACEHOLDER_IMAGE }}
+            />
+          </View>
+        )}
         initialNumToRender={1}
         maxToRenderPerBatch={2}
-        windowSize={3}
-        removeClippedSubviews={true}
       />
 
-      {/* Use memoized accessories component */}
-      <WatchAccessories box={watch.box} papers={watch.papers} />
+      {/* Box and Papers indicators */}
+      {(watch.box || watch.papers) && (
+        <View style={styles.accessoriesContainer}>
+          {watch.box && (
+            <View style={styles.accessoryIcon}>
+              <Ionicons name="cube-outline" size={18} color="#FFFFFF" />
+            </View>
+          )}
+          {watch.papers && (
+            <View style={styles.accessoryIcon}>
+              <Ionicons name="document-text-outline" size={18} color="#FFFFFF" />
+            </View>
+          )}
+        </View>
+      )}
 
-      {/* Only render pagination if needed */}
+      {/* Pagination dots */}
       {showPagination && (
-        <View style={styles.paginationContainer} pointerEvents="none">
+        <View style={styles.paginationContainer}>
           <Pagination 
             scrollX={scrollX} 
             cardWidth={SCREEN_WIDTH} 
@@ -136,10 +114,10 @@ const SecondaryCardComponent: React.FC<SecondaryCardProps> = ({ watch }) => {
       )}
     </View>
   );
-};
+}
 
-// Memoize the entire component
-export const SecondaryCard = memo(SecondaryCardComponent);
+// Export component
+export const SecondaryCard = SecondaryCardComponent;
 
 const styles = StyleSheet.create({
   container: {
@@ -193,4 +171,3 @@ const styles = StyleSheet.create({
   },
 });
 
-export default SecondaryCard;

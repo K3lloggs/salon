@@ -17,18 +17,13 @@ import LikeCounter from "./LikeCounter";
 import { OnHoldBadge } from "./HoldBadge";
 import { Ionicons } from "@expo/vector-icons";
 
-// CONSTANTS for consistent dimensions
-const IMAGE_ASPECT_RATIO = 9 / 11;
-const DEFAULT_CARD_WIDTH = 400;
-const PLACEHOLDER_IMAGE = 'https://via.placeholder.com/400x450/F6F7F8/F6F7F8';
-
 interface WatchCardProps {
   watch: Watch;
   disableNavigation?: boolean;
 }
 
 // Memoize accessory icons to prevent re-renders
-const WatchAccessories = memo(({ box, papers }: { box?: boolean; papers?: boolean }) => {
+const WatchAccessories = memo(({ box, papers }: { box: boolean; papers: boolean }) => {
   if (!box && !papers) return null;
   return (
     <View style={styles.accessoriesContainer} pointerEvents="none">
@@ -46,27 +41,11 @@ const WatchAccessories = memo(({ box, papers }: { box?: boolean; papers?: boolea
   );
 });
 
-// Memoized badges component
-const BadgesDisplay = memo(({ newArrival, hold }: { newArrival?: boolean; hold?: boolean }) => {
-  if (!newArrival && !hold) return null;
-  
-  return (
-    <View style={styles.badgesContainer} pointerEvents="none">
-      {newArrival && <NewArrivalBadge />}
-      {hold && (
-        <View style={newArrival ? styles.stackedBadge : null}>
-          <OnHoldBadge />
-        </View>
-      )}
-    </View>
-  );
-});
-
 // Pre-compute styles for better performance
 const imageStyles = StyleSheet.create({
   image: {
     height: "100%",
-    aspectRatio: IMAGE_ASPECT_RATIO,
+    aspectRatio: 9 / 11,
   },
 });
 
@@ -89,8 +68,6 @@ const OptimizedImage = memo(
           resizeMode="cover"
           fadeDuration={0}
           progressiveRenderingEnabled={true}
-          defaultSource={{ uri: PLACEHOLDER_IMAGE }}
-          onLoadStart={() => {}}
         />
       </Pressable>
     );
@@ -113,7 +90,7 @@ const PriceDisplay = memo(({ price, msrp }: { price: number | string; msrp?: num
 ));
 
 const WatchCardComponent = ({ watch, disableNavigation = false }: WatchCardProps) => {
-  const [cardWidth, setCardWidth] = useState<number>(DEFAULT_CARD_WIDTH);
+  const [cardWidth, setCardWidth] = useState<number>(0);
   const scrollX = useRef(new Animated.Value(0)).current;
   // Memoize the images array to prevent re-creation on each render
   const images = useMemo(
@@ -135,7 +112,7 @@ const WatchCardComponent = ({ watch, disableNavigation = false }: WatchCardProps
   const onCardLayout = useCallback(
     (event: LayoutChangeEvent) => {
       const width = event.nativeEvent.layout.width;
-      if (width !== cardWidth && width > 0) {
+      if (width !== cardWidth) {
         setCardWidth(width);
       }
     },
@@ -154,8 +131,8 @@ const WatchCardComponent = ({ watch, disableNavigation = false }: WatchCardProps
   // Memoize getItemLayout to avoid recreating this function on each render
   const getItemLayout = useCallback(
     (_data: any, index: number) => ({
-      length: cardWidth,
-      offset: cardWidth * index,
+      length: cardWidth || 400,
+      offset: (cardWidth || 400) * index,
       index,
     }),
     [cardWidth]
@@ -164,7 +141,7 @@ const WatchCardComponent = ({ watch, disableNavigation = false }: WatchCardProps
   // Memoize renderItem to avoid recreating function on each render
   const renderItem = useCallback(
     ({ item: imageUrl }: { item: string }) => (
-      <OptimizedImage uri={imageUrl} width={cardWidth} onPress={handlePress} />
+      <OptimizedImage uri={imageUrl} width={cardWidth || 400} onPress={handlePress} />
     ),
     [cardWidth, handlePress]
   );
@@ -180,33 +157,38 @@ const WatchCardComponent = ({ watch, disableNavigation = false }: WatchCardProps
             pagingEnabled
             showsHorizontalScrollIndicator={false}
             onScroll={handleScroll}
-            scrollEventThrottle={16}
-            snapToInterval={cardWidth}
+            scrollEventThrottle={32}
+            snapToInterval={cardWidth || 400}
             decelerationRate="fast"
             snapToAlignment="center"
-            removeClippedSubviews={false}
+            removeClippedSubviews={Platform.OS === "android"}
             data={images}
             keyExtractor={(item, index) => `${watch.id}-image-${index}`}
             renderItem={renderItem}
-            initialNumToRender={3}
-            maxToRenderPerBatch={4}
-            windowSize={5}
+            initialNumToRender={1}
+            maxToRenderPerBatch={2}
+            windowSize={3}
             getItemLayout={getItemLayout}
             onEndReachedThreshold={0.5}
             key={`watch-${watch.id}`}
-            onMomentumScrollBegin={() => {}}
-            onMomentumScrollEnd={() => {}}
           />
 
           {/* Wrap all overlays in a single absoluteFill view */}
-          <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
-            {/* Badges section */}
-            <BadgesDisplay newArrival={watch.newArrival} hold={!!watch.hold} />
+          <View style={StyleSheet.absoluteFill}>
+            {/* Badges section with proper stacking */}
+            {(watch.newArrival || watch.hold) && (
+              <View style={styles.badgesContainer} pointerEvents="none">
+                {watch.newArrival && <NewArrivalBadge />}
+                {watch.hold && <View style={watch.newArrival ? styles.stackedBadge : null}>
+                  <OnHoldBadge />
+                </View>}
+              </View>
+            )}
             
             {/* LikeCounter */}
             <LikeCounter watch={watch} initialLikes={watch.likes || 0} />
             
-            {/* WatchAccessories */}
+            {/* WatchAccessories (note: this component already has pointerEvents="none") */}
             <WatchAccessories box={watch.box} papers={watch.papers} />
             
             {/* Pagination */}
@@ -214,7 +196,7 @@ const WatchCardComponent = ({ watch, disableNavigation = false }: WatchCardProps
               <View style={styles.paginationContainer} pointerEvents="none">
                 <Pagination
                   scrollX={scrollX}
-                  cardWidth={cardWidth}
+                  cardWidth={cardWidth || 400}
                   totalItems={images.length}
                 />
               </View>
@@ -254,7 +236,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: "#fff",
     width: "100%",
-    maxWidth: DEFAULT_CARD_WIDTH,
+    maxWidth: 400,
     alignSelf: "center",
     overflow: "hidden",
     ...Platform.select({
@@ -276,7 +258,7 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     width: "100%",
-    aspectRatio: IMAGE_ASPECT_RATIO,
+    aspectRatio: 9 / 11,
     backgroundColor: "#F6F7F8",
     position: "relative",
   },

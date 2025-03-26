@@ -18,7 +18,12 @@ function MainLayout() {
           <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
           <Stack
             screenOptions={{
-              headerShown: false, // disable the default header for all screens
+              headerShown: false,
+              animation: 'default',
+              gestureEnabled: true,
+              gestureDirection: 'horizontal',
+              presentation: 'card',
+              animationDuration: 200,
             }}
           >
             {/* Main Tab Navigation */}
