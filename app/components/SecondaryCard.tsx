@@ -6,7 +6,7 @@ import { OnHoldBadge } from "./HoldBadge";
 import { Ionicons } from '@expo/vector-icons';
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const PLACEHOLDER_IMAGE = 'https://via.placeholder.com/400x450/F6F7F8/F6F7F8';
+
 
 interface SecondaryCardProps {
   watch: {
@@ -33,12 +33,12 @@ interface SecondaryCardProps {
 function SecondaryCardComponent({ watch }: SecondaryCardProps) {
   const scrollX = useRef(new Animated.Value(0)).current;
   
-  // Process images array with fallback
+  // Process images array
   const images = Array.isArray(watch.image) && watch.image.length > 0 
     ? watch.image 
     : typeof watch.image === 'string' && watch.image 
       ? [watch.image] 
-      : [PLACEHOLDER_IMAGE];
+      : [];
   
   const showPagination = images.length > 1;
 
@@ -78,7 +78,7 @@ function SecondaryCardComponent({ watch }: SecondaryCardProps) {
               style={styles.image}
               resizeMode="cover"
               fadeDuration={0}
-              defaultSource={{ uri: PLACEHOLDER_IMAGE }}
+
             />
           </View>
         )}
@@ -170,4 +170,3 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
 });
-

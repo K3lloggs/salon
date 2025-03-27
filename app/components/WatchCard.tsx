@@ -92,9 +92,18 @@ const PriceDisplay = memo(({ price, msrp }: { price: number | string; msrp?: num
 const WatchCardComponent = ({ watch, disableNavigation = false }: WatchCardProps) => {
   const [cardWidth, setCardWidth] = useState<number>(0);
   const scrollX = useRef(new Animated.Value(0)).current;
+  
   // Memoize the images array to prevent re-creation on each render
   const images = useMemo(
-    () => (Array.isArray(watch.image) ? watch.image : [watch.image]),
+    () => {
+      if (Array.isArray(watch.image) && watch.image.length > 0) {
+        return watch.image;
+      } else if (typeof watch.image === 'string' && watch.image) {
+        return [watch.image];
+      } else {
+        return [];
+      }
+    },
     [watch.image]
   );
 

@@ -1,5 +1,5 @@
 // app/watch/[id].tsx
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
   SafeAreaView,
   ScrollView,
@@ -9,6 +9,7 @@ import {
   Dimensions,
   ActivityIndicator,
   Platform,
+  Animated,
 } from "react-native";
 import { BlurView } from "expo-blur";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -25,6 +26,13 @@ import StripeCheckout from "../components/StripeCheckout";
 const STRIPE_PUBLISHABLE_KEY =
   "pk_test_51KOAMQDYuNaEOlQ2h7MW9gJ2D5TqDVRaP6bHYjsKY3UrTCrnCSVpILWzJvWiw33EhrouU4UObAxectGVxcnTbwsg001yIaHp9V";
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
+// Preload cache for smoother transitions
+const preloadComponentCache = () => {
+  // This forces the JS engine to compile components ahead of time
+  const StockBadgeTemp = <StockBadge />;
+  const LikeListTemp = <LikeList watchId="" initialLikes={0} />;
+};
 
 // Memoize SpecRow to prevent unnecessary rerenders
 const SpecRow = React.memo(({ label, value }: {
@@ -44,6 +52,13 @@ export default function DetailScreen() {
   const router = useRouter();
   const { watches, loading } = useWatches();
   const [purchaseCompleted, setPurchaseCompleted] = useState(false);
+  const [contentReady, setContentReady] = useState(false);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  // Preload cache
+  useEffect(() => {
+    preloadComponentCache();
+  }, []);
 
   // If watches are loaded and no matching watch is found, navigate back.
   useEffect(() => {
@@ -52,12 +67,24 @@ export default function DetailScreen() {
       const found = watches.find((w) => String(w.id) === String(id));
       if (!found) {
         timeoutId = setTimeout(() => router.back(), 500);
+      } else {
+        // When watch is found, start a short delay before revealing content
+        // This ensures all components have time to measure and layout
+        timeoutId = setTimeout(() => {
+          setContentReady(true);
+          // Fade in content smoothly
+          Animated.timing(fadeAnim, {
+            toValue: 1,
+            duration: 300,
+            useNativeDriver: true,
+          }).start();
+        }, 100);
       }
     }
     return () => {
       if (timeoutId) clearTimeout(timeoutId);
     };
-  }, [loading, watches, id, router]);
+  }, [loading, watches, id, router, fadeAnim]);
 
   const handlePurchaseSuccess = useCallback(() => {
     setPurchaseCompleted(true);
@@ -70,19 +97,19 @@ export default function DetailScreen() {
     return watches.find((w) => String(w.id) === String(id));
   }, [watches, id]);
 
-  // Format price and MSRP values
+  // Format price and MSRP values - ensure they're available for initial render
   const { formattedPrice, formattedMSRP } = useMemo(() => {
-    if (!watch) return { formattedPrice: "0", formattedMSRP: "0" };
+    if (!watch) return { formattedPrice: "", formattedMSRP: "" };
     return {
-      formattedPrice: watch.price ? watch.price.toLocaleString() : "0",
-      formattedMSRP: watch.msrp ? watch.msrp.toLocaleString() : "0"
+      formattedPrice: watch.price ? watch.price.toLocaleString() : "",
+      formattedMSRP: watch.msrp ? watch.msrp.toLocaleString() : ""
     };
   }, [watch]);
 
   // Memoize spec entries to avoid recalculations
   const specEntries = useMemo(() => {
     if (!watch) return [];
-    
+
     return [
       { label: "Case Material", value: watch.caseMaterial },
       { label: "Diameter", value: watch.caseDiameter },
@@ -119,24 +146,13 @@ export default function DetailScreen() {
     ];
   }, [watch]);
 
-  if (loading || !watches || watches.length === 0) {
+  // Use a full-page loading approach to avoid content jumping
+  if (loading || !watches || watches.length === 0 || !watch || !contentReady) {
     return (
       <SafeAreaView style={styles.container}>
         <FixedHeader showBackButton title="" />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#002d4e" />
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  if (!watch) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <FixedHeader showBackButton title="" />
-        <View style={styles.loadingContainer}>
-          <Text style={{ color: "#666", marginBottom: 10 }}>Watch not found</Text>
-          <ActivityIndicator size="small" color="#002d4e" />
         </View>
       </SafeAreaView>
     );
@@ -150,87 +166,95 @@ export default function DetailScreen() {
       <SafeAreaView style={styles.container}>
         <FixedHeader showBackButton watch={watch} />
 
-        <ScrollView 
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          removeClippedSubviews={false}
-        >
-          <SecondaryCard watch={watch} />
+        <Animated.View style={{
+          flex: 1,
+          opacity: fadeAnim,
+        }}>
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            removeClippedSubviews={false}
+          >
+            <SecondaryCard watch={watch} />
 
-          <BlurView intensity={30} tint="light" style={styles.detailsPanel}>
-            <View style={styles.headerSection}>
-              {/* Brand name in its own container */}
-              <View style={styles.brandContainer}>
-                <Text style={styles.brand} numberOfLines={1} ellipsizeMode="tail">
-                  {watch.brand}
-                </Text>
-              </View>
-              
-              {/* LikeList in its own container */}
-              <View style={styles.likeListContainer}>
-                <LikeList watchId={watch.id} initialLikes={watch.likes || 0} />
-              </View>
-              
-              <Text style={styles.model}>{watch.model}</Text>
-              <View style={styles.infoContainer}>
-                {watch.referenceNumber && (
-                  <Text style={styles.referenceNumber}>
-                    Ref. {watch.referenceNumber}
-                  </Text>
-                )}
-                {watch.sku && (
-                  <Text style={styles.referenceNumber}>
-                    SKU: {watch.sku}
-                  </Text>
-                )}
-              </View>
-              <View style={styles.stockPriceContainer}>
-                <View style={styles.stockBadgeWrapper}>
-                  <StockBadge />
+            <BlurView intensity={30} tint="light" style={styles.detailsPanel}>
+              <View style={styles.headerSection}>
+                {/* Brand & LikeList Container with original positioning */}
+                <View style={styles.brandLikeContainer}>
+                  <View style={styles.brandContainer}>
+                    <Text style={styles.brand} numberOfLines={1} ellipsizeMode="tail">
+                      {watch.brand || " "}
+                    </Text>
+                  </View>
+
+                  <View style={styles.likeListContainer}>
+                    <LikeList watchId={watch.id} initialLikes={watch.likes || 0} />
+                  </View>
                 </View>
-                <View style={styles.priceContainer}>
-                  {/* Fixed MSRP display */}
-                  {watch.msrp ? (
+
+                <Text style={styles.model}>{watch.model || " "}</Text>
+                <View style={styles.infoContainer}>
+                  {watch.referenceNumber && (
+                    <Text style={styles.referenceNumber}>
+                      Ref. {watch.referenceNumber}
+                    </Text>
+                  )}
+                  {watch.sku && (
+                    <Text style={styles.referenceNumber}>
+                      SKU: {watch.sku}
+                    </Text>
+                  )}
+                </View>
+                <View style={styles.stockPriceContainer}>
+                  <View style={styles.stockBadgeWrapper}>
+                    <StockBadge />
+                  </View>
+                  <View style={styles.priceContainer}>
+                    {/* Fixed MSRP display - ensure consistent height */}
                     <View style={styles.msrpContainer}>
-                      <Text style={styles.msrpLabel}>MSRP: </Text>
-                      <Text style={styles.msrpValue}>${formattedMSRP}</Text>
+                      {watch.msrp ? (
+                        <>
+                          <Text style={styles.msrpLabel}>MSRP: </Text>
+                          <Text style={styles.msrpValue}>${formattedMSRP}</Text>
+                        </>
+                      ) : null}
                     </View>
-                  ) : null}
-                  {/* Fixed price display */}
-                  <Text style={styles.price}>${formattedPrice}</Text>
+                    {/* Fixed price display */}
+                    <Text style={styles.price}>${formattedPrice}</Text>
+                  </View>
                 </View>
               </View>
-            </View>
 
-            <View style={styles.buttonRow}>
-              <View style={styles.buttonWrapper}>
-                <TradeButton watch={watch} />
+              <View style={styles.buttonRow}>
+                <View style={styles.buttonWrapper}>
+                  <TradeButton watch={watch} />
+                </View>
+                <View style={styles.buttonWrapper}>
+                  <MessageButton title="MESSAGE US" />
+                </View>
               </View>
-              <View style={styles.buttonWrapper}>
-                <MessageButton title="MESSAGE US" />
+
+              <View style={styles.specsContainer}>
+                {specEntries.map((spec, index) => (
+                  <SpecRow key={index} label={spec.label} value={spec.value} />
+                ))}
               </View>
-            </View>
+            </BlurView>
 
-            <View style={styles.specsContainer}>
-              {specEntries.map((spec, index) => (
-                <SpecRow key={index} label={spec.label} value={spec.value} />
-              ))}
-            </View>
-          </BlurView>
+            {watch.description && (
+              <View style={styles.descriptionContainer}>
+                <Text style={styles.descriptionLabel}>Description</Text>
+                <Text style={styles.descriptionText}>{watch.description}</Text>
+              </View>
+            )}
 
-          {watch.description && (
-            <View style={styles.descriptionContainer}>
-              <Text style={styles.descriptionLabel}>Description</Text>
-              <Text style={styles.descriptionText}>{watch.description}</Text>
+            <View style={styles.footerContainer}>
+              <Text style={styles.footerText}>
+                Shreve, Crump & Low • Horological Excellence Since 1796
+              </Text>
             </View>
-          )}
-
-          <View style={styles.footerContainer}>
-            <Text style={styles.footerText}>
-              Shreve, Crump & Low • Horological Excellence Since 1796
-            </Text>
-          </View>
-        </ScrollView>
+          </ScrollView>
+        </Animated.View>
 
         <View style={styles.bottomContainer}>
           {purchaseCompleted || watch.sold ? (
@@ -255,17 +279,17 @@ export default function DetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
+  container: {
+    flex: 1,
     backgroundColor: "#fff"
   },
-  scrollContent: { 
+  scrollContent: {
     paddingBottom: 140,
   },
-  loadingContainer: { 
-    flex: 1, 
-    justifyContent: "center", 
-    alignItems: "center" 
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center"
   },
   detailsPanel: {
     marginTop: -20,
@@ -283,31 +307,35 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   descriptionText: { fontSize: 15, color: "#002d4e", lineHeight: 22 },
-  headerSection: { 
-    marginBottom: 32, 
+  headerSection: {
+    marginBottom: 32,
     paddingTop: 8,
-    position: 'relative',
   },
-  /* BRAND & LIKELIST - Fixed to prevent text cutoff */
+  /* BRAND & LIKELIST - Maintaining original positioning */
+  brandLikeContainer: {
+    position: 'relative',
+    marginBottom: 4,
+    height: 40, // Fixed height prevents layout shift
+  },
   brandContainer: {
     width: '100%',
     paddingRight: 60, // Make space for the like list on the right
-    marginBottom: 0,
   },
-  brand: { 
-    fontSize: 30, 
-    fontWeight: "700", 
-    color: "#002d4e", 
+  brand: {
+    fontSize: 30,
+    fontWeight: "700",
+    color: "#002d4e",
     letterSpacing: -0.5,
-    width: '100%', // Brand can use full width of its container
+    width: '100%',
   },
   likeListContainer: {
     position: 'absolute',
     right: 0,
-    top: 8,
-    zIndex: 1, // Ensure it stays on top
+    top: 0,
+    zIndex: 1,
     alignItems: 'flex-end',
   },
+
   model: {
     fontSize: 20,
     fontWeight: "400",
@@ -316,8 +344,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     marginTop: 4,
     flexWrap: "wrap",
+    lineHeight: 24,
   },
-  infoContainer: { marginBottom: 12 },
+  infoContainer: {
+    marginBottom: 12,
+    minHeight: 22, // Ensure consistent height even when empty
+  },
   referenceNumber: {
     fontSize: 13,
     color: "#666",
@@ -331,6 +363,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 14,
     marginTop: -9,
+    height: 40, // Fixed height prevents layout shifts
   },
   stockBadgeWrapper: { width: SCREEN_WIDTH * 0.3, overflow: "hidden" },
   priceContainer: {
@@ -338,9 +371,14 @@ const styles = StyleSheet.create({
     flexDirection: "column",
     alignItems: "flex-end",
     justifyContent: "center",
-    marginTop: -5,
+    height: 40, // Fixed height to match container
   },
-  msrpContainer: { flexDirection: "row", alignItems: "center", marginBottom: 2 },
+  msrpContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 2,
+    height: 16, // Fixed height to prevent shifting when empty
+  },
   msrpLabel: { fontSize: 14, color: "#002d4e", opacity: 0.8 },
   msrpValue: {
     fontSize: 14,
@@ -354,7 +392,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#002d4e",
     letterSpacing: -0.3,
-    marginTop: -4,
+    height: 24, // Fixed height for consistency
   },
   /* BUTTON ROW */
   buttonRow: {
@@ -362,6 +400,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: 32,
     marginHorizontal: -12,
+    height: 48, // Fixed height for the buttons
   },
   buttonWrapper: { flex: 1, marginHorizontal: 8, marginVertical: -34 },
   /* SPECS */

@@ -96,6 +96,7 @@ const styles = StyleSheet.create({
     color: '#333',
     height: '100%',
     paddingVertical: 8,
+    paddingRight: 30, // Add some padding to prevent text from going under the clear button
   },
   clearButton: {
     padding: 6,
