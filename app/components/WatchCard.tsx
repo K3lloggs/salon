@@ -109,12 +109,24 @@ const WatchCardComponent = ({ watch, disableNavigation = false }: WatchCardProps
 
   const router = useRouter();
 
+  // Fix: Use direct string path navigation instead of the pathname/params object
   const handlePress = useCallback(() => {
     if (!disableNavigation) {
-      router.push({
-        pathname: `/watch/[id]`,
-        params: { id: watch.id },
-      });
+      try {
+        console.log('Navigation triggered for watch ID:', watch.id);
+        console.log('Watch ID type:', typeof watch.id);
+        
+        // Use direct string-based navigation which is more reliable in production builds
+        router.push("/watch/" + watch.id);
+      } catch (error) {
+        console.error('Navigation error:', error);
+        
+        // Fallback to the object-based approach
+        router.push({
+          pathname: "/watch/[id]",
+          params: { id: String(watch.id) } // Force ID to string for consistency
+        });
+      }
     }
   }, [disableNavigation, router, watch.id]);
 

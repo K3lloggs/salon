@@ -48,28 +48,63 @@ const SpecRow = React.memo(({ label, value }: {
 );
 
 export default function DetailScreen() {
-  const { id } = useLocalSearchParams();
+  const params = useLocalSearchParams();
+  const id = params.id;
   const router = useRouter();
   const { watches, loading } = useWatches();
   const [purchaseCompleted, setPurchaseCompleted] = useState(false);
   const [contentReady, setContentReady] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  // Log info for debugging
+  useEffect(() => {
+    console.log("DetailScreen mounted", {
+      id,
+      idType: typeof id,
+      loading,
+      watchesCount: watches?.length || 0
+    });
+  }, [id, loading, watches]);
 
   // Preload cache
   useEffect(() => {
     preloadComponentCache();
   }, []);
 
+  // Memoize watch data with multiple comparison strategies
+  const watch = useMemo(() => {
+    if (!watches || watches.length === 0) return null;
+
+    // Try exact match first
+    let found = watches.find((w) => w.id === id);
+
+    // Then try string comparison
+    if (!found) {
+      found = watches.find((w) => String(w.id) === String(id));
+    }
+
+    // Try numeric comparison if possible
+    if (!found && !isNaN(Number(id))) {
+      found = watches.find((w) => Number(w.id) === Number(id));
+    }
+
+    console.log("Watch lookup result:", found ? "Found" : "Not found");
+    return found;
+  }, [watches, id]);
+
   // If watches are loaded and no matching watch is found, navigate back.
   useEffect(() => {
     let timeoutId: ReturnType<typeof setTimeout>;
+
     if (!loading && watches && watches.length > 0) {
-      const found = watches.find((w) => String(w.id) === String(id));
-      if (!found) {
-        timeoutId = setTimeout(() => router.back(), 500);
+      if (!watch) {
+        console.warn(`Watch with ID ${id} not found in collection of ${watches.length} watches`);
+        console.log("Available watch IDs:", watches.map(w => w.id));
+        setError(`Watch not found. ID: ${id}`);
+        timeoutId = setTimeout(() => router.back(), 1500);
       } else {
         // When watch is found, start a short delay before revealing content
-        // This ensures all components have time to measure and layout
         timeoutId = setTimeout(() => {
           setContentReady(true);
           // Fade in content smoothly
@@ -81,21 +116,16 @@ export default function DetailScreen() {
         }, 100);
       }
     }
+
     return () => {
       if (timeoutId) clearTimeout(timeoutId);
     };
-  }, [loading, watches, id, router, fadeAnim]);
+  }, [loading, watches, watch, id, router, fadeAnim]);
 
   const handlePurchaseSuccess = useCallback(() => {
     setPurchaseCompleted(true);
     // Update Firestore or perform additional actions here
   }, []);
-
-  // Memoize watch data to prevent recalculations
-  const watch = useMemo(() => {
-    if (!watches || watches.length === 0) return null;
-    return watches.find((w) => String(w.id) === String(id));
-  }, [watches, id]);
 
   // Format price and MSRP values - ensure they're available for initial render
   const { formattedPrice, formattedMSRP } = useMemo(() => {
@@ -152,7 +182,14 @@ export default function DetailScreen() {
       <SafeAreaView style={styles.container}>
         <FixedHeader showBackButton title="" />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#002d4e" />
+          {error ? (
+            <View>
+              <Text style={{ color: 'red', marginBottom: 10 }}>{error}</Text>
+              <Text>Returning to previous screen...</Text>
+            </View>
+          ) : (
+            <ActivityIndicator size="large" color="#002d4e" />
+          )}
         </View>
       </SafeAreaView>
     );
