@@ -7,7 +7,7 @@ export default {
     scheme: 'watchsalon', // <-- Required linking scheme for production builds
     icon: "./assets/images/scl_watch.jpg",
     orientation: "portrait",
-    version: "1.0.7",  // Version number
+    version: "1.0.8",  // Version number
     extra: {
       FIREBASE_API_KEY: process.env.FIREBASE_API_KEY,
       FIREBASE_AUTH_DOMAIN: process.env.FIREBASE_AUTH_DOMAIN,
