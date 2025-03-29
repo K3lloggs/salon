@@ -247,15 +247,13 @@ export default function DetailScreen() {
                     <StockBadge />
                   </View>
                   <View style={styles.priceContainer}>
-                    {/* Fixed MSRP display - ensure consistent height */}
-                    <View style={styles.msrpContainer}>
-                      {watch.msrp ? (
-                        <>
-                          <Text style={styles.msrpLabel}>MSRP: </Text>
-                          <Text style={styles.msrpValue}>${formattedMSRP}</Text>
-                        </>
-                      ) : null}
-                    </View>
+                    {/* Fixed MSRP display */}
+                    {watch.msrp ? (
+                      <View style={styles.msrpContainer}>
+                        <Text style={styles.msrpLabel}>MSRP: </Text>
+                        <Text style={styles.msrpValue}>${formattedMSRP}</Text>
+                      </View>
+                    ) : null}
                     {/* Fixed price display */}
                     <Text style={styles.price}>${formattedPrice}</Text>
                   </View>
@@ -393,7 +391,7 @@ const styles = StyleSheet.create({
     fontWeight: "400",
     marginBottom: 4,
   },
-  /* STOCK & PRICE */
+  /* STOCK & PRICE - UPDATED FOR PROPER ALIGNMENT */
   stockPriceContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -414,7 +412,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 2,
-    height: 16, // Fixed height to prevent shifting when empty
   },
   msrpLabel: { fontSize: 14, color: "#002d4e", opacity: 0.8 },
   msrpValue: {
@@ -430,6 +427,8 @@ const styles = StyleSheet.create({
     color: "#002d4e",
     letterSpacing: -0.3,
     height: 24, // Fixed height for consistency
+    textAlign: "right", // Ensure price is right-aligned
+    alignSelf: "flex-end", // Keep price at the right edge
   },
   /* BUTTON ROW */
   buttonRow: {

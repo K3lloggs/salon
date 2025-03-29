@@ -2,10 +2,10 @@ import 'dotenv/config';
 
 export default {
   expo: {
-    name: 'Watch Salon',
+    name: 'Watch',
     slug: 'salon',
     scheme: 'watchsalon', // <-- Required linking scheme for production builds
-    icon: "./assets/images/shreve_circle.png",
+    icon: "./assets/images/scl_watch.jpg",
     orientation: "portrait",
     version: "1.0.6",  // Version number
     extra: {
