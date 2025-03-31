@@ -2,12 +2,12 @@ import 'dotenv/config';
 
 export default {
   expo: {
-    name: 'Watch',
+    name: 'Watch SCL',
     slug: 'salon',
     scheme: 'watchsalon', // <-- Required linking scheme for production builds
     icon: "./assets/images/scl_watch.jpg",
     orientation: "portrait",
-    version: "1.1.0",  // Version number
+    version: "1.1.1",  // Version number
     extra: {
       FIREBASE_API_KEY: process.env.FIREBASE_API_KEY,
       FIREBASE_AUTH_DOMAIN: process.env.FIREBASE_AUTH_DOMAIN,
