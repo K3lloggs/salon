@@ -5,9 +5,9 @@ export default {
     name: 'Watch SCL',
     slug: 'salon',
     scheme: 'watchsalon', // <-- Required linking scheme for production builds
-    icon: "./assets/images/scl_watch.jpg",
+    icon: "./assets/images/shreve_circle.jpg",
     orientation: "portrait",
-    version: "1.1.1",  // Version number
+    version: "1.1.2",  // Version number
     extra: {
       FIREBASE_API_KEY: process.env.FIREBASE_API_KEY,
       FIREBASE_AUTH_DOMAIN: process.env.FIREBASE_AUTH_DOMAIN,
