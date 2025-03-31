@@ -5,7 +5,7 @@ export default {
     name: 'Watch SCL',
     slug: 'salon',
     scheme: 'watchsalon', // <-- Required linking scheme for production builds
-    icon: "./assets/images/shreve_circle.jpg",
+    icon: "./assets/images/shreve_circle.png",
     orientation: "portrait",
     version: "1.1.2",  // Version number
     extra: {
