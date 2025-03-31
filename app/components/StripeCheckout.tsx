@@ -1,4 +1,3 @@
-// app/components/StripeCheckout.tsx
 import React, { useState, useMemo } from "react";
 import {
   View,
@@ -19,8 +18,12 @@ import {
 import { useStripe } from "@stripe/stripe-react-native";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { getApp } from "firebase/app";
-import { doc, getFirestore, setDoc } from "firebase/firestore";
-import { Feather } from '@expo/vector-icons';
+import { doc, getFirestore, setDoc, updateDoc } from "firebase/firestore";
+import { Feather } from "@expo/vector-icons";
+
+// Note: The publishable key should be set in your app's root component using StripeProvider,
+// not in this component directly.
+
 
 const StripeCheckout = ({ watch, onSuccess, onCancel }) => {
   const [modalVisible, setModalVisible] = useState(false);
@@ -35,25 +38,22 @@ const StripeCheckout = ({ watch, onSuccess, onCancel }) => {
   const [processing, setProcessing] = useState(false);
 
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
-  
+
   // Format price for display
   const formattedPrice = useMemo(() => {
     return watch?.price ? `$${watch.price.toLocaleString()}` : "$0";
   }, [watch?.price]);
-    
-  // Process images properly based on the watch data structure
+
+  // Process images based on the watch data structure
   const watchImages = useMemo(() => {
     if (!watch) return [];
-    
-    // Handle different image formats from Firebase
     if (Array.isArray(watch.image)) {
       return watch.image;
-    } else if (typeof watch.image === 'string') {
+    } else if (typeof watch.image === "string") {
       return [watch.image];
-    } else if (watch.image && typeof watch.image === 'object') {
+    } else if (watch.image && typeof watch.image === "object") {
       return Object.values(watch.image);
     }
-    
     return [];
   }, [watch]);
 
@@ -97,13 +97,16 @@ const StripeCheckout = ({ watch, onSuccess, onCancel }) => {
     setProcessing(true);
 
     try {
-      // Get functions instance from the current app
       const functions = getFunctions(getApp());
       const firestore = getFirestore(getApp());
-      
-      // Save shipping information to Firestore first
-      const shippingInfoId = `shipping_${Date.now()}`;
-      const shippingInfo = {
+
+      // Create a document ID using the submitted name and the watch's SKU.
+      // Sanitize the name by trimming and removing spaces.
+      const sanitizedName = name.trim().replace(/\s+/g, '');
+      const orderDocId = `${sanitizedName}_${watch.sku}`;
+      const createdAt = new Date().toISOString();
+
+      const orderData = {
         name,
         email,
         phone,
@@ -116,19 +119,15 @@ const StripeCheckout = ({ watch, onSuccess, onCancel }) => {
         watchBrand: watch.brand,
         watchModel: watch.model,
         watchPrice: watch.price,
-        createdAt: new Date().toISOString(),
+        createdAt,
+        paymentStatus: "pending", // update to 'paid' upon success
       };
-      
-      // Save shipping info to Firestore
-      await setDoc(doc(firestore, "shippingInfo", shippingInfoId), shippingInfo);
-      
-      // Call Firebase function to create payment intent
-      const createPaymentIntentFn = httpsCallable(
-        functions,
-        "createPaymentIntent"
-      );
 
-      // Convert price to cents for Stripe
+      // Save the order document in the "orders" collection
+      await setDoc(doc(firestore, "orders", orderDocId), orderData);
+
+      // Call Firebase function to create a PaymentIntent for Stripe
+      const createPaymentIntentFn = httpsCallable(functions, "createPaymentIntent");
       const amountInCents = Math.round(parseFloat(watch.price) * 100);
 
       const response = await createPaymentIntentFn({
@@ -136,7 +135,6 @@ const StripeCheckout = ({ watch, onSuccess, onCancel }) => {
         currency: "usd",
         watchId: watch.id,
         description: `Purchase of ${watch.brand} ${watch.model}`,
-        shippingInfoId: shippingInfoId, // Pass shipping info ID to link with payment
         shipping: {
           name,
           email,
@@ -145,22 +143,22 @@ const StripeCheckout = ({ watch, onSuccess, onCancel }) => {
           city,
           zipCode,
           state,
-          country
+          country,
         },
-        customerEmail: email // Make sure to pass the customer email for confirmation
+        customerEmail: email,
       });
-      
+
       const { clientSecret } = response.data as { clientSecret: string };
-      
+
       if (!clientSecret) {
         throw new Error("Failed to receive client secret from server");
       }
 
-      // Initialize the payment sheet
+      // Initialize the payment sheet with the client secret
       const { error: initError } = await initPaymentSheet({
         paymentIntentClientSecret: clientSecret,
         merchantDisplayName: "Watch Salon",
-        style: 'automatic',
+        style: "automatic",
         defaultBillingDetails: {
           name,
           email,
@@ -174,7 +172,7 @@ const StripeCheckout = ({ watch, onSuccess, onCancel }) => {
           },
         },
         allowsDelayedPaymentMethods: true,
-        returnURL: 'watchsalon://stripe-redirect',
+        returnURL: "watchsalon://stripe-redirect",
       });
 
       if (initError) {
@@ -184,32 +182,44 @@ const StripeCheckout = ({ watch, onSuccess, onCancel }) => {
         return;
       }
 
-      // Open the payment sheet
+      // Present the payment sheet to the user
       const { error: presentError } = await presentPaymentSheet();
 
       if (presentError) {
         if (presentError.code === "Canceled") {
-          // User canceled, just close silently
           setProcessing(false);
           return;
         }
-
         console.error("Error presenting payment sheet:", presentError);
         Alert.alert("Payment Error", presentError.message);
         setProcessing(false);
         return;
       }
 
-      // If we get here, payment was successful
-      Alert.alert("Purchase Successful", "Your order has been confirmed! We'll contact you shortly with shipping details and send you a confirmation email.", [
-        {
-          text: "OK",
-          onPress: () => {
-            setModalVisible(false);
-            if (onSuccess) onSuccess();
+      // Payment was successful on the client side.
+      // Update the order document to mark paymentStatus as "paid"
+      await updateDoc(doc(firestore, "orders", orderDocId), {
+        paymentStatus: "paid",
+      });
+
+      // Update the watch document to put it on hold (hold = true)
+      await updateDoc(doc(firestore, "Watches", watch.id), {
+        hold: true,
+      });
+
+      Alert.alert(
+        "Purchase Successful",
+        "Your order has been confirmed! We'll contact you shortly with shipping details and confirmation.",
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              setModalVisible(false);
+              if (onSuccess) onSuccess();
+            },
           },
-        },
-      ]);
+        ]
+      );
     } catch (error) {
       console.error("Payment error:", error);
       Alert.alert(
@@ -229,10 +239,7 @@ const StripeCheckout = ({ watch, onSuccess, onCancel }) => {
 
   return (
     <>
-      <Pressable
-        style={styles.buyButton}
-        onPress={() => setModalVisible(true)}
-      >
+      <Pressable style={styles.buyButton} onPress={() => setModalVisible(true)}>
         <Text style={styles.buyButtonText}>Purchase</Text>
       </Pressable>
 
@@ -248,7 +255,7 @@ const StripeCheckout = ({ watch, onSuccess, onCancel }) => {
             <View style={styles.modalView}>
               {/* Header with back button */}
               <View style={styles.modalHeader}>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.backButton}
                   onPress={handleCloseModal}
                   disabled={processing}
@@ -256,8 +263,8 @@ const StripeCheckout = ({ watch, onSuccess, onCancel }) => {
                 >
                   <Feather name="arrow-left" size={24} color="#002d4e" />
                 </TouchableOpacity>
-                <Text style={styles.modalTitle}>Complete Your Purchase</Text>
-                <View style={{width: 44}} />
+                <Text style={styles.modalTitle}>Shipping Info</Text>
+                <View style={{ width: 44 }} />
               </View>
 
               {/* Scrollable content area */}
@@ -265,16 +272,16 @@ const StripeCheckout = ({ watch, onSuccess, onCancel }) => {
                 behavior={Platform.OS === "ios" ? "padding" : undefined}
                 style={styles.keyboardView}
               >
-                <ScrollView 
-                  style={styles.scrollView} 
+                <ScrollView
+                  style={styles.scrollView}
                   showsVerticalScrollIndicator={false}
                   contentContainerStyle={styles.scrollViewContent}
                 >
                   {/* Watch info section with image */}
                   <View style={styles.watchInfoContainer}>
                     {watchImages.length > 0 ? (
-                      <Image 
-                        source={{ uri: watchImages[0] }} 
+                      <Image
+                        source={{ uri: watchImages[0] }}
                         style={styles.watchImage}
                         resizeMode="cover"
                       />
@@ -291,8 +298,6 @@ const StripeCheckout = ({ watch, onSuccess, onCancel }) => {
                   </View>
 
                   <View style={styles.formContainer}>
-                    <Text style={styles.sectionTitle}>Shipping Information</Text>
-
                     <Text style={styles.inputLabel}>Full Name</Text>
                     <TextInput
                       style={styles.input}
@@ -376,7 +381,7 @@ const StripeCheckout = ({ watch, onSuccess, onCancel }) => {
                       editable={!processing}
                     />
 
-                    {/* Extra bottom padding to ensure content isn't hidden behind footer */}
+                    {/* Extra bottom padding */}
                     <View style={{ height: 90 }} />
                   </View>
                 </ScrollView>
@@ -422,10 +427,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
@@ -451,10 +453,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     overflow: "hidden",
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 8,
     elevation: 10,
@@ -507,7 +506,7 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: 8,
     marginRight: 16,
-    backgroundColor: "#f0f0f0", // Add background color in case image loading is delayed
+    backgroundColor: "#f0f0f0",
   },
   watchImagePlaceholder: {
     width: 100,
@@ -542,12 +541,6 @@ const styles = StyleSheet.create({
   },
   formContainer: {
     paddingHorizontal: 20,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 16,
-    color: "#002D4E",
   },
   inputLabel: {
     fontSize: 14,

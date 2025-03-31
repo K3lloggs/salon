@@ -7,6 +7,7 @@ import { AnimatedSplashScreen } from './splash';
 import { LoadingProvider } from './context/LoadingContext';
 import { LoadingOverlay } from './components/LoadingOverlay';
 import { useLoading } from './context/LoadingContext';
+import { StripeProvider } from '@stripe/stripe-react-native';
 
 function MainLayout() {
   const { isLoading } = useLoading();
@@ -47,9 +48,14 @@ function MainLayout() {
 export default function RootLayout() {
   return (
     <AnimatedSplashScreen>
-      <LoadingProvider>
-        <MainLayout />
-      </LoadingProvider>
+      <StripeProvider
+        publishableKey="pk_live_51KOAMQDYuNaEOlQ2nqKvmYdL45mnKhQxEdOCJX5kgcpCmlHueINBYyPmggU0LHhPtUsUr2bKG8Iph5xSXsGlmi3h008ESuHAo0"
+        urlScheme="watchsalon" // Required for 3D Secure and bank redirects
+      >
+        <LoadingProvider>
+          <MainLayout />
+        </LoadingProvider>
+      </StripeProvider>
     </AnimatedSplashScreen>
   );
 }

@@ -20,11 +20,8 @@ import { FixedHeader } from "../components/FixedHeader";
 import { StockBadge } from "../components/StockBadge";
 import { LikeList } from "../components/LikeList";
 import { useWatches } from "../hooks/useWatches";
-import { StripeProvider } from "@stripe/stripe-react-native";
 import StripeCheckout from "../components/StripeCheckout";
 
-const STRIPE_PUBLISHABLE_KEY =
-  "pk_test_51KOAMQDYuNaEOlQ2h7MW9gJ2D5TqDVRaP6bHYjsKY3UrTCrnCSVpILWzJvWiw33EhrouU4UObAxectGVxcnTbwsg001yIaHp9V";
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 // Preload cache for smoother transitions
@@ -183,126 +180,121 @@ export default function DetailScreen() {
   }
 
   return (
-    <StripeProvider
-      publishableKey={STRIPE_PUBLISHABLE_KEY}
-      merchantIdentifier="merchant.com.watchsalon"
-    >
-      <SafeAreaView style={styles.container}>
-        <FixedHeader showBackButton watch={watch} />
+    <SafeAreaView style={styles.container}>
+      <FixedHeader showBackButton watch={watch} />
 
-        <Animated.View style={{
-          flex: 1,
-          opacity: fadeAnim,
-        }}>
-          <ScrollView
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-            removeClippedSubviews={false}
-          >
-            <SecondaryCard watch={watch} />
+      <Animated.View style={{
+        flex: 1,
+        opacity: fadeAnim,
+      }}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          removeClippedSubviews={false}
+        >
+          <SecondaryCard watch={watch} />
 
-            <BlurView intensity={30} tint="light" style={styles.detailsPanel}>
-              <View style={styles.headerSection}>
-                {/* Brand & LikeList Container with original positioning */}
-                <View style={styles.brandLikeContainer}>
-                  <View style={styles.brandContainer}>
-                    {watch.brand === "Vacheron Constantin" ? (
-                      <Text style={styles.brandSmaller} numberOfLines={1} ellipsizeMode="tail">
-                        {watch.brand}
-                      </Text>
-                    ) : (
-                      <Text style={styles.brand} numberOfLines={1} ellipsizeMode="tail">
-                        {watch.brand || " "}
-                      </Text>
-                    )}
-                  </View>
-
-                  <View style={styles.likeListContainer}>
-                    <LikeList watchId={watch.id} initialLikes={watch.likes || 0} />
-                  </View>
-                </View>
-
-                <Text style={styles.model}>{watch.model || " "}</Text>
-                <View style={styles.infoContainer}>
-                  {watch.referenceNumber && (
-                    <Text style={styles.referenceNumber}>
-                      Ref. {watch.referenceNumber}
+          <BlurView intensity={30} tint="light" style={styles.detailsPanel}>
+            <View style={styles.headerSection}>
+              {/* Brand & LikeList Container with original positioning */}
+              <View style={styles.brandLikeContainer}>
+                <View style={styles.brandContainer}>
+                  {watch.brand === "Vacheron Constantin" ? (
+                    <Text style={styles.brandSmaller} numberOfLines={1} ellipsizeMode="tail">
+                      {watch.brand}
                     </Text>
-                  )}
-                  {watch.sku && (
-                    <Text style={styles.referenceNumber}>
-                      SKU: {watch.sku}
+                  ) : (
+                    <Text style={styles.brand} numberOfLines={1} ellipsizeMode="tail">
+                      {watch.brand || " "}
                     </Text>
                   )}
                 </View>
-                <View style={styles.stockPriceContainer}>
-                  <View style={styles.stockBadgeWrapper}>
-                    <StockBadge />
-                  </View>
-                  <View style={styles.priceContainer}>
-                    {/* Fixed MSRP display */}
-                    {watch.msrp ? (
-                      <View style={styles.msrpContainer}>
-                        <Text style={styles.msrpLabel}>MSRP: </Text>
-                        <Text style={styles.msrpValue}>${formattedMSRP}</Text>
-                      </View>
-                    ) : null}
-                    {/* Fixed price display */}
-                    <Text style={styles.price}>${formattedPrice}</Text>
-                  </View>
+
+                <View style={styles.likeListContainer}>
+                  <LikeList watchId={watch.id} initialLikes={watch.likes || 0} />
                 </View>
               </View>
 
-              <View style={styles.buttonRow}>
-                <View style={styles.buttonWrapper}>
-                  <TradeButton watch={watch} />
+              <Text style={styles.model}>{watch.model || " "}</Text>
+              <View style={styles.infoContainer}>
+                {watch.referenceNumber && (
+                  <Text style={styles.referenceNumber}>
+                    Ref. {watch.referenceNumber}
+                  </Text>
+                )}
+                {watch.sku && (
+                  <Text style={styles.referenceNumber}>
+                    SKU: {watch.sku}
+                  </Text>
+                )}
+              </View>
+              <View style={styles.stockPriceContainer}>
+                <View style={styles.stockBadgeWrapper}>
+                  <StockBadge />
                 </View>
-                <View style={styles.buttonWrapper}>
-                  <MessageButton title="MESSAGE US" />
+                <View style={styles.priceContainer}>
+                  {/* Fixed MSRP display */}
+                  {watch.msrp ? (
+                    <View style={styles.msrpContainer}>
+                      <Text style={styles.msrpLabel}>MSRP: </Text>
+                      <Text style={styles.msrpValue}>${formattedMSRP}</Text>
+                    </View>
+                  ) : null}
+                  {/* Fixed price display */}
+                  <Text style={styles.price}>${formattedPrice}</Text>
                 </View>
               </View>
+            </View>
 
-              <View style={styles.specsContainer}>
-                {specEntries.map((spec, index) => (
-                  <SpecRow key={index} label={spec.label} value={spec.value} />
-                ))}
+            <View style={styles.buttonRow}>
+              <View style={styles.buttonWrapper}>
+                <TradeButton watch={watch} />
               </View>
-            </BlurView>
-
-            {watch.description && (
-              <View style={styles.descriptionContainer}>
-                <Text style={styles.descriptionLabel}>Description</Text>
-                <Text style={styles.descriptionText}>{watch.description}</Text>
+              <View style={styles.buttonWrapper}>
+                <MessageButton title="MESSAGE US" />
               </View>
-            )}
+            </View>
 
-            <View style={styles.footerContainer}>
-              <Text style={styles.footerText}>
-                Shreve, Crump & Low • Horological Excellence Since 1796
-              </Text>
+            <View style={styles.specsContainer}>
+              {specEntries.map((spec, index) => (
+                <SpecRow key={index} label={spec.label} value={spec.value} />
+              ))}
             </View>
-          </ScrollView>
-        </Animated.View>
+          </BlurView>
 
-        <View style={styles.bottomContainer}>
-          {purchaseCompleted || watch.sold ? (
-            <View style={[styles.stripeButton, styles.soldButton]}>
-              <Text style={styles.stripeButtonText}>Sold</Text>
+          {watch.description && (
+            <View style={styles.descriptionContainer}>
+              <Text style={styles.descriptionLabel}>Description</Text>
+              <Text style={styles.descriptionText}>{watch.description}</Text>
             </View>
-          ) : watch.hold ? (
-            <View style={[styles.stripeButton, styles.onHoldButton]}>
-              <Text style={styles.stripeButtonText}>On Hold</Text>
-            </View>
-          ) : (
-            <StripeCheckout
-              watch={watch}
-              onSuccess={handlePurchaseSuccess}
-              onCancel={() => {}}
-            />
           )}
-        </View>
-      </SafeAreaView>
-    </StripeProvider>
+
+          <View style={styles.footerContainer}>
+            <Text style={styles.footerText}>
+              Shreve, Crump & Low • Horological Excellence Since 1796
+            </Text>
+          </View>
+        </ScrollView>
+      </Animated.View>
+
+      <View style={styles.bottomContainer}>
+        {purchaseCompleted || watch.sold ? (
+          <View style={[styles.stripeButton, styles.soldButton]}>
+            <Text style={styles.stripeButtonText}>Sold</Text>
+          </View>
+        ) : watch.hold ? (
+          <View style={[styles.stripeButton, styles.onHoldButton]}>
+            <Text style={styles.stripeButtonText}>On Hold</Text>
+          </View>
+        ) : (
+          <StripeCheckout
+            watch={watch}
+            onSuccess={handlePurchaseSuccess}
+            onCancel={() => {}}
+          />
+        )}
+      </View>
+    </SafeAreaView>
   );
 }
 

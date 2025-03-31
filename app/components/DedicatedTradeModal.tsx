@@ -8,12 +8,8 @@ import {
   Alert,
   Image,
   ActivityIndicator,
-  TouchableWithoutFeedback,
-  Keyboard,
-  Platform,
   ScrollView,
-  StatusBar,
-  Dimensions,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -87,7 +83,6 @@ const DedicatedTradeModal: React.FC<DedicatedTradeModalProps> = ({
   }, [updateField]);
 
   const handleSubmit = useCallback(async () => {
-    // Form validation
     if (!formData.reference && !formData.photo) {
       Alert.alert(
         'Missing Information',
@@ -111,7 +106,6 @@ const DedicatedTradeModal: React.FC<DedicatedTradeModalProps> = ({
       return;
     }
 
-    // Simple email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
       Alert.alert('Invalid Email', 'Please enter a valid email address.');
@@ -123,7 +117,6 @@ const DedicatedTradeModal: React.FC<DedicatedTradeModalProps> = ({
     try {
       let photoURL = null;
       
-      // Upload photo to Firebase Storage if exists
       if (formData.photo) {
         const storage = getStorage();
         const timestamp = new Date().getTime();
@@ -132,14 +125,11 @@ const DedicatedTradeModal: React.FC<DedicatedTradeModalProps> = ({
         const fullPath = `trade-photos/${filename}`;
         const storageRef = ref(storage, fullPath);
         
-        // Convert the image URI to a blob
         const response = await fetch(formData.photo);
         const blob = await response.blob();
         
-        // Upload the image
         const uploadTask = uploadBytesResumable(storageRef, blob);
         
-        // Handle the upload process
         await new Promise((resolve, reject) => {
           uploadTask.on(
             'state_changed',
@@ -159,7 +149,6 @@ const DedicatedTradeModal: React.FC<DedicatedTradeModalProps> = ({
         });
       }
 
-      // Prepare payload data
       const payload = {
         reference: formData.reference,
         phoneNumber: formData.phoneNumber,
@@ -177,11 +166,9 @@ const DedicatedTradeModal: React.FC<DedicatedTradeModalProps> = ({
         }),
       };
 
-      // Add document to Firestore
       const tradeRef = collection(db, 'TradeRequests');
       await addDoc(tradeRef, payload);
       
-      // Success alert
       Alert.alert(
         'Trade Request Sent',
         'Thank you! Your trade request has been sent. We will contact you shortly to discuss the trade details.',
@@ -195,36 +182,33 @@ const DedicatedTradeModal: React.FC<DedicatedTradeModalProps> = ({
     }
   }, [formData, onClose, watch]);
 
+  // Display only the clicked watch image (without any fallback placeholder)
   const renderWatchDetails = useCallback(() => {
     if (!watch) return null;
+
+    let watchImageUri;
+    if (Array.isArray(watch.images) && watch.images.length > 0) {
+      watchImageUri = watch.images[0];
+    } else if (watch.image && typeof watch.image === 'string') {
+      watchImageUri = watch.image;
+    }
+
     return (
-      <View style={styles.watchInfoCard}>
-        <Text style={styles.watchInfoTitle}>Trading For</Text>
-        <Text style={styles.watchInfoDetails}>
-          {watch.brand} {watch.model}
-        </Text>
-        <Text style={styles.watchInfoSpecs}>
-          {watch.caseMaterial && `${watch.caseMaterial} • `}
-          {watch.caseDiameter && `${watch.caseDiameter} • `}
-          {watch.movement}
-        </Text>
-        {watch.price && (
-          <Text style={styles.watchInfoPrice}>
-            ${watch.price.toLocaleString()}
-          </Text>
+      <View style={styles.watchInfoContainer}>
+        {watchImageUri && (
+          <Image 
+            source={{ uri: watchImageUri }} 
+            style={styles.watchImage} 
+            resizeMode="cover" 
+          />
         )}
-        {watch.referenceNumber && (
-          <Text style={styles.watchInfoRef}>
-            Ref: {watch.referenceNumber}
-          </Text>
-        )}
-        {Array.isArray(watch.images) && watch.images.length ? (
-          <View style={styles.watchImagesContainer}>
-            {watch.images.map((url, idx) => (
-              <Image key={idx} source={{ uri: url }} style={styles.watchImage} />
-            ))}
-          </View>
-        ) : null}
+        <View style={styles.watchDetails}>
+          <Text style={styles.watchBrand}>{watch.brand}</Text>
+          <Text style={styles.watchTitle}>{watch.model}</Text>
+          {watch.price && (
+            <Text style={styles.priceText}>${watch.price.toLocaleString()}</Text>
+          )}
+        </View>
       </View>
     );
   }, [watch]);
@@ -238,24 +222,24 @@ const DedicatedTradeModal: React.FC<DedicatedTradeModalProps> = ({
       onSwipeComplete={onClose}
       animationIn="slideInUp"
       animationOut="slideOutDown"
+      animationInTiming={500}       // Smoother slide in timing
+      animationOutTiming={500}      // Smoother slide out timing
       style={styles.modalStyle}
       propagateSwipe={true}
       backdropOpacity={0.5}
       avoidKeyboard={false}
       statusBarTranslucent
+      useNativeDriver={true}        // Enable native driver for smoother animations
     >
       <View style={styles.modalContainer}>
-        {/* Drag Indicator */}
         <View style={styles.dragHandleContainer}>
           <View style={styles.dragHandle} />
         </View>
 
-        {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Trade Request</Text>
         </View>
 
-        {/* Content */}
         <ScrollView 
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContentContainer}
@@ -265,7 +249,6 @@ const DedicatedTradeModal: React.FC<DedicatedTradeModalProps> = ({
           {renderWatchDetails()}
 
           <View style={styles.formSection}>
-            {/* Row for Reference & Phone Number */}
             <View style={styles.rowContainer}>
               <View style={styles.inputWrap}>
                 <Text style={styles.label}>Reference Number</Text>
@@ -290,7 +273,6 @@ const DedicatedTradeModal: React.FC<DedicatedTradeModalProps> = ({
               </View>
             </View>
 
-            {/* Email Address */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Email Address</Text>
               <TextInput
@@ -304,7 +286,6 @@ const DedicatedTradeModal: React.FC<DedicatedTradeModalProps> = ({
               />
             </View>
 
-            {/* Trade Details */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Trade Details</Text>
               <TextInput
@@ -319,7 +300,6 @@ const DedicatedTradeModal: React.FC<DedicatedTradeModalProps> = ({
               />
             </View>
 
-            {/* Photo Section */}
             <View style={styles.photoSection}>
               <Text style={styles.label}>Watch Photos</Text>
               {formData.photo ? (
@@ -360,12 +340,10 @@ const DedicatedTradeModal: React.FC<DedicatedTradeModalProps> = ({
               </Text>
             </View>
             
-            {/* Space to ensure content isn't hidden behind button */}
             <View style={styles.bottomSpacer} />
           </View>
         </ScrollView>
         
-        {/* Fixed Button - Outside ScrollView */}
         <View style={styles.buttonContainer}>
           <TouchableOpacity
             style={[styles.submitButton, isSubmitting && styles.buttonDisabled]}
@@ -431,59 +409,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 15,
     paddingBottom: 20,
-  },
-  watchInfoCard: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 20,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#002d4e',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
-  },
-  watchInfoTitle: {
-    fontSize: 14,
-    color: '#64748B',
-    marginBottom: 4,
-  },
-  watchInfoDetails: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#002d4e',
-    marginBottom: 4,
-  },
-  watchInfoSpecs: {
-    fontSize: 14,
-    color: '#64748B',
-    marginBottom: 8,
-  },
-  watchInfoPrice: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#0F766E',
-    marginBottom: 4,
-  },
-  watchInfoRef: {
-    fontSize: 14,
-    color: '#64748B',
-  },
-  watchImagesContainer: {
-    flexDirection: 'row',
-    marginTop: 8,
-  },
-  watchImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-    marginRight: 8,
   },
   formSection: {
     paddingBottom: 8,
@@ -601,6 +526,9 @@ const styles = StyleSheet.create({
     marginTop: 8,
     textAlign: 'center',
   },
+  bottomSpacer: {
+    height: 30,
+  },
   buttonContainer: {
     paddingHorizontal: 20,
     paddingVertical: 16,
@@ -635,7 +563,41 @@ const styles = StyleSheet.create({
   buttonDisabled: {
     opacity: 0.7,
   },
-  bottomSpacer: {
-    height: 30, // Extra padding at the bottom of the scroll content
+  /* Styles for Watch Info */
+  watchInfoContainer: {
+    flexDirection: 'row',
+    padding: 20,
+    backgroundColor: '#f9f9f9',
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  watchImage: {
+    width: 100,
+    height: 120,
+    borderRadius: 8,
+    marginRight: 16,
+    backgroundColor: '#f0f0f0',
+  },
+  watchDetails: {
+    flex: 1,
+  },
+  watchBrand: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#002d4e',
+    marginBottom: 4,
+    letterSpacing: 0.3,
+  },
+  watchTitle: {
+    fontSize: 16,
+    color: '#444',
+    marginBottom: 8,
+    letterSpacing: 0.3,
+  },
+  priceText: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#002d4e',
+    letterSpacing: 0.3,
   },
 });

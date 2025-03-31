@@ -2,7 +2,6 @@ import React from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Linking } from 'react-native';
 import { FixedHeader } from '../components/FixedHeader';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 
 interface LocationSectionProps {
   title: string;
@@ -30,12 +29,7 @@ const LocationSection = ({ title, address, phone, hours }: LocationSectionProps)
 
 function AboutScreen() {
   return (
-    <LinearGradient
-      colors={['#ffffff', '#cce6ff']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 0 }}
-      style={styles.gradientContainer}
-    >
+    <View style={styles.container}>
       <FixedHeader />
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.content}>
@@ -86,13 +80,14 @@ function AboutScreen() {
           />
         </View>
       </ScrollView>
-    </LinearGradient>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  gradientContainer: {
+  container: {
     flex: 1,
+    backgroundColor: '#ffffff', // plain background color
   },
   scrollContainer: {
     paddingBottom: 20,

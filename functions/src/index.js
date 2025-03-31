@@ -11,9 +11,12 @@ if (!admin.apps.length) {
   admin.initializeApp();
 }
 
+// Get the Stripe secret key from environment config
+const stripeSecretKey = functions.config().stripe?.secret_key;
 
+// Initialize Stripe with the secret key
 const stripe = new Stripe(
-  "sk_test_51KOAMQDYuNaEOlQ2cMftzqDaJJVqIl6T8wLv0v84WJwfWx2JVojRulGtQf7nlEYSE0jsmVspizrMpBeY12BYlpWv004f15rpTd",  // You'll need to replace this with your actual complete secret key
+  stripeSecretKey,
   {
     apiVersion: "2023-10-16"
   }
@@ -26,11 +29,8 @@ const createPaymentIntent = functions
   .region("us-central1")
   .https.onCall(async (data, context) => {
     try {
-      logger.info("Creating payment intent", { data });
-
       // Validate required fields
       if (!data.amount || !data.currency || !data.watchId) {
-        logger.error("Missing required payment information", { data });
         throw new functions.https.HttpsError(
           "invalid-argument",
           "Missing required payment information."
@@ -39,16 +39,16 @@ const createPaymentIntent = functions
 
       // Amount should be in cents for Stripe
       const amount = parseInt(data.amount);
-      
+
       // Store shipping info if provided
       let shippingInfoId = data.shippingInfoId || null;
-      
+
       // If shipping data provided directly in the request, save it
       if (data.shipping && !shippingInfoId) {
         try {
           // Create a new document in the shippingInfo collection
           const shippingRef = await admin.firestore().collection("shippingInfo").add({
-            userId: context.auth?.uid || 'anonymous',
+            userId: context.auth?.uid || "anonymous",
             watchId: data.watchId,
             name: data.shipping.name,
             email: data.shipping.email,
@@ -61,33 +61,26 @@ const createPaymentIntent = functions
             created: admin.firestore.FieldValue.serverTimestamp()
           });
           shippingInfoId = shippingRef.id;
-          logger.info("Shipping information saved", { shippingInfoId });
         } catch (error) {
-          logger.error("Error saving shipping information", error);
+          // Continue even if there's an error with shipping info
         }
       }
-      
+
       // Create a payment intent with Stripe
       const paymentIntent = await stripe.paymentIntents.create({
         amount,
         currency: data.currency || "usd",
         metadata: {
-          userId: context.auth?.uid || 'anonymous',
+          userId: context.auth?.uid || "anonymous",
           watchId: data.watchId,
           description: data.description || "Watch purchase",
           shippingInfoId: shippingInfoId
         }
       });
 
-      logger.info("Payment intent created successfully", { 
-        paymentIntentId: paymentIntent.id,
-        watchId: data.watchId,
-        shippingInfoId
-      });
-
       // Save the payment intent to Firestore for tracking
       await admin.firestore().collection("payments").add({
-        userId: context.auth?.uid || 'anonymous',
+        userId: context.auth?.uid || "anonymous",
         watchId: data.watchId,
         amount,
         currency: data.currency,
@@ -102,7 +95,6 @@ const createPaymentIntent = functions
         clientSecret: paymentIntent.client_secret
       };
     } catch (error) {
-      logger.error("Error creating payment intent", error);
       throw new functions.https.HttpsError(
         "internal",
         "Unable to create payment intent: " + error.message
@@ -117,52 +109,48 @@ const stripeWebhook = functions
   .region("us-central1")
   .https.onRequest(async (req, res) => {
     const signature = req.headers["stripe-signature"];
-    
-    // You'll need to set this in your Stripe dashboard and Firebase environment variables
-    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || "";
-    
+
+    // Get webhook secret from environment config
+    const webhookSecret = functions.config().stripe?.webhook_secret || "";
+
     try {
       // Verify the event came from Stripe
       let event;
-      
+
       try {
         if (!signature) {
-          logger.error("Missing Stripe signature");
           return res.status(400).send("Missing signature");
         }
-        
+
         if (!webhookSecret) {
-          logger.error("Missing webhook secret. Set STRIPE_WEBHOOK_SECRET in your environment");
-          // No webhook secret found
+          // No webhook secret found; use raw event data
           event = { 
             type: req.body.type,
             data: { object: req.body.data?.object }
           };
         } else {
           event = stripe.webhooks.constructEvent(
-            req.rawBody, 
-            signature, 
+            req.rawBody,
+            signature,
             webhookSecret
           );
         }
       } catch (err) {
-        logger.error("Webhook signature verification failed", err);
         return res.status(400).send(`Webhook Error: ${err.message}`);
       }
-      
+
       // Handle specific event types
-      if (event.type === 'payment_intent.succeeded') {
+      if (event.type === "payment_intent.succeeded") {
         const paymentIntent = event.data.object;
         await handleSuccessfulPayment(paymentIntent);
-      } else if (event.type === 'payment_intent.payment_failed') {
+      } else if (event.type === "payment_intent.payment_failed") {
         const paymentIntent = event.data.object;
         await handleFailedPayment(paymentIntent);
       }
-      
+
       // Return success
-      res.status(200).send({received: true});
+      res.status(200).send({ received: true });
     } catch (error) {
-      logger.error("Error processing webhook", error);
       res.status(500).send(`Webhook Error: ${error.message}`);
     }
   });
@@ -172,29 +160,26 @@ const stripeWebhook = functions
  */
 async function handleSuccessfulPayment(paymentIntent) {
   try {
-    logger.info("Processing successful payment", { paymentIntentId: paymentIntent.id });
-    
     // Find the payment record
     const paymentsRef = admin.firestore().collection("payments");
     const snapshot = await paymentsRef
       .where("paymentIntentId", "==", paymentIntent.id)
       .get();
-    
+
     if (snapshot.empty) {
-      logger.error("No matching payment found for successful payment", { paymentIntentId: paymentIntent.id });
       return;
     }
-    
+
     // Update the payment record
-    const doc = snapshot.docs[0];
-    const paymentData = doc.data();
-    paymentData.id = doc.id; // Add document ID to the data
-    
-    await doc.ref.update({
+    const docSnap = snapshot.docs[0];
+    const paymentData = docSnap.data();
+    paymentData.id = docSnap.id; // Add document ID to the data
+
+    await docSnap.ref.update({
       status: "completed",
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     });
-    
+
     // Get shipping information if available
     let shippingInfo = null;
     if (paymentData.shippingInfoId || paymentIntent.metadata.shippingInfoId) {
@@ -205,27 +190,28 @@ async function handleSuccessfulPayment(paymentIntent) {
           shippingInfo = shippingDoc.data();
         }
       } catch (error) {
-        logger.error("Error retrieving shipping information", { error, shippingId });
+        // Continue even if shipping info retrieval fails
       }
     }
-    
-    // Update the watch as sold if applicable
+
+    // Update the watch document to put it on hold (check if document exists first)
     if (paymentData.watchId) {
-      const watchRef = admin.firestore().collection("watches").doc(paymentData.watchId);
-      await watchRef.update({
-        sold: true,
-        soldAt: admin.firestore.FieldValue.serverTimestamp(),
-        soldTo: paymentData.userId,
-        shippingInfoId: paymentData.shippingInfoId || paymentIntent.metadata.shippingInfoId
-      });
-      
-      logger.info("Watch marked as sold", { watchId: paymentData.watchId });
+      const watchRef = admin.firestore().collection("Watches").doc(paymentData.watchId);
+      const watchDoc = await watchRef.get();
+      if (watchDoc.exists) {
+        await watchRef.update({
+          hold: true,
+          holdAt: admin.firestore.FieldValue.serverTimestamp(),
+          holdBy: paymentData.userId,
+          shippingInfoId: paymentData.shippingInfoId || paymentIntent.metadata.shippingInfoId
+        });
+      }
     }
-    
+
     // Send confirmation email with shipping details included
     await sendPurchaseConfirmationEmail(paymentData, shippingInfo);
   } catch (error) {
-    logger.error("Error handling successful payment", error);
+    // Silent error handling for production
   }
 }
 
@@ -234,30 +220,25 @@ async function handleSuccessfulPayment(paymentIntent) {
  */
 async function handleFailedPayment(paymentIntent) {
   try {
-    logger.info("Processing failed payment", { paymentIntentId: paymentIntent.id });
-    
     // Find the payment record
     const paymentsRef = admin.firestore().collection("payments");
     const snapshot = await paymentsRef
       .where("paymentIntentId", "==", paymentIntent.id)
       .get();
-    
+
     if (snapshot.empty) {
-      logger.error("No matching payment found for failed payment", { paymentIntentId: paymentIntent.id });
       return;
     }
-    
+
     // Update the payment record
-    const doc = snapshot.docs[0];
-    await doc.ref.update({
+    const docSnap = snapshot.docs[0];
+    await docSnap.ref.update({
       status: "failed",
       error: paymentIntent.last_payment_error?.message || "Payment failed",
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     });
-    
-    logger.info("Payment marked as failed", { paymentIntentId: paymentIntent.id });
   } catch (error) {
-    logger.error("Error handling failed payment", error);
+    // Silent error handling for production
   }
 }
 
@@ -269,7 +250,7 @@ async function sendPurchaseConfirmationEmail(paymentData, shippingInfo) {
     // Get watch details
     let watch = null;
     if (paymentData.watchId) {
-      const watchRef = admin.firestore().collection("watches").doc(paymentData.watchId);
+      const watchRef = admin.firestore().collection("Watches").doc(paymentData.watchId);
       const watchDoc = await watchRef.get();
       if (watchDoc.exists) {
         watch = watchDoc.data();
@@ -283,19 +264,8 @@ async function sendPurchaseConfirmationEmail(paymentData, shippingInfo) {
 
     // Validate email configuration is present
     if (!mailgunUsername || !mailgunPassword) {
-      logger.error("Mailgun configuration is missing. Please verify your SMTP credentials.");
       return;
     }
-
-    const transporter = nodemailer.createTransport({
-      host: "smtp.mailgun.org",
-      port: 587,
-      secure: false,
-      auth: {
-        user: mailgunUsername,
-        pass: mailgunPassword,
-      }
-    });
 
     // Create purchase confirmation email with shipping info
     const emailSubject = `New Purchase - ${watch ? `${watch.brand} ${watch.model}` : "Watch"}`;
@@ -344,19 +314,21 @@ async function sendPurchaseConfirmationEmail(paymentData, shippingInfo) {
       subject: emailSubject,
       html: emailHtml,
     };
-    
-    // Send confirmation email to customer if we have their email
-    if (shippingInfo && shippingInfo.email) {
+
+    // Send confirmation email to customer if we have their email.
+    // Use shippingInfo.email if available; otherwise, fallback to paymentData.email.
+    const customerEmail = (shippingInfo && shippingInfo.email) ? shippingInfo.email : (paymentData.email || null);
+    if (customerEmail) {
       const customerSubject = `Your Watch Salon Purchase - ${watch ? `${watch.brand} ${watch.model}` : "Watch"}`;
       const customerHtml = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #002d4e;">Thank You for Your Purchase!</h2>
-          <p>Dear ${shippingInfo.name || "Valued Customer"},</p>
+          <p>Dear ${shippingInfo && shippingInfo.name ? shippingInfo.name : "Valued Customer"},</p>
           <p>Thank you for your purchase from Watch Salon. Your order has been confirmed and we're preparing it for shipment.</p>
           
           <h3>Order Details:</h3>
           <p>
-            <strong>Amount:</strong> ${(paymentData.amount / 100).toLocaleString()}<br>
+            <strong>Amount:</strong> $${(paymentData.amount / 100).toLocaleString()}<br>
             <strong>Date:</strong> ${new Date().toLocaleDateString()}<br>
           </p>
           ${watch ? `
@@ -369,10 +341,10 @@ async function sendPurchaseConfirmationEmail(paymentData, shippingInfo) {
           ` : ""}
           <h3>Shipping Address:</h3>
           <p>
-            ${shippingInfo.name}<br>
-            ${shippingInfo.address}<br>
-            ${shippingInfo.city}, ${shippingInfo.state} ${shippingInfo.zipCode}<br>
-            ${shippingInfo.country}
+            ${shippingInfo && shippingInfo.name ? shippingInfo.name : ""}<br>
+            ${shippingInfo && shippingInfo.address ? shippingInfo.address : ""}<br>
+            ${shippingInfo && shippingInfo.city ? shippingInfo.city : ""}, ${shippingInfo && shippingInfo.state ? shippingInfo.state : ""} ${shippingInfo && shippingInfo.zipCode ? shippingInfo.zipCode : ""}<br>
+            ${shippingInfo && shippingInfo.country ? shippingInfo.country : ""}
           </p>
           
           <p>We'll send you a notification when your order ships with tracking information.</p>
@@ -386,25 +358,19 @@ async function sendPurchaseConfirmationEmail(paymentData, shippingInfo) {
           </div>
         </div>
       `;
-      
+
       const customerMailOptions = {
         from: mailgunSender,
-        to: shippingInfo.email,
+        to: customerEmail,
         subject: customerSubject,
         html: customerHtml,
       };
-      
-      // Send email to customer
+
       await transporter.sendMail(customerMailOptions);
-      logger.info(`Confirmation email sent to customer: ${shippingInfo.email}`);
     }
 
     await transporter.verify();
-    const info = await transporter.sendMail(adminMailOptions);
-    logger.info(`Purchase confirmation email sent with shipping details`, {
-      messageId: info.messageId,
-      shippingInfoId: paymentData.shippingInfoId
-    });
+    await transporter.sendMail(adminMailOptions);
 
     // Update payment record to mark email as sent
     try {
@@ -414,13 +380,10 @@ async function sendPurchaseConfirmationEmail(paymentData, shippingInfo) {
         emailSentTimestamp: admin.firestore.FieldValue.serverTimestamp(),
       });
     } catch (error) {
-      logger.error("Error updating payment record with email status", error);
+      // Silent error handling
     }
-
-    return info;
   } catch (error) {
-    logger.error("Error sending purchase confirmation email", error);
-    return null;
+    // Silent error handling for production
   }
 }
 
@@ -430,11 +393,6 @@ async function sendPurchaseConfirmationEmail(paymentData, shippingInfo) {
 const mailgunUsername = functions.config().mailgun?.username;
 const mailgunPassword = functions.config().mailgun?.password;
 const mailgunSender = functions.config().mailgun?.sender;
-
-// Validate email configuration is present
-if (!mailgunUsername || !mailgunPassword) {
-  logger.error("Mailgun configuration is missing. Please verify your SMTP credentials.");
-}
 
 /**
  * Configure Nodemailer with Mailgun SMTP settings
@@ -460,8 +418,8 @@ const allowedCollections = [
   "SellRequests",
   "Requests",
   "Messages",
-  "payments", // Add payments for purchase confirmation emails
-  "shippingInfo" // Add shipping info for direct access
+  "payments",
+  "shippingInfo"
 ];
 
 /**
@@ -472,24 +430,18 @@ const onRequestDocCreate = functions
   .firestore
   .document("{collectionName}/{docId}")
   .onCreate(async (snapshot, context) => {
-    logger.info(`Function triggered for document ${context.params.docId} in collection ${context.params.collectionName}`);
-
     const collectionName = context.params.collectionName;
 
     // Check if this is a collection we care about
     if (!allowedCollections.includes(collectionName)) {
-      logger.info(`Skipping document in ${collectionName} as it is not in the monitored collections.`);
       return null;
     }
 
     // Get document data
     const data = snapshot.data();
     if (!data) {
-      logger.error(`No data in document ${context.params.docId} of ${collectionName}.`);
       return null;
     }
-
-    logger.info(`Processing data from ${collectionName}`, { docId: context.params.docId });
 
     // Special handling for payments collection
     if (collectionName === "payments") {
@@ -499,7 +451,7 @@ const onRequestDocCreate = functions
           // Get watch details
           let watch = null;
           if (data.watchId) {
-            const watchRef = admin.firestore().collection("watches").doc(data.watchId);
+            const watchRef = admin.firestore().collection("Watches").doc(data.watchId);
             const watchDoc = await watchRef.get();
             if (watchDoc.exists) {
               watch = watchDoc.data();
@@ -515,7 +467,7 @@ const onRequestDocCreate = functions
                 shippingInfo = shippingDoc.data();
               }
             } catch (error) {
-              logger.error("Error retrieving shipping information", { error, shippingInfoId: data.shippingInfoId });
+              // Continue if shipping info retrieval fails
             }
           }
 
@@ -562,32 +514,27 @@ const onRequestDocCreate = functions
           // Send email
           const mailOptions = {
             from: mailgunSender,
-            to: "cclosework@gmail.com", // Your email address
+            to: "cclosework@gmail.com",
             subject: emailSubject,
             html: emailHtml,
           };
 
           await transporter.verify();
-          const info = await transporter.sendMail(mailOptions);
-          logger.info(`Purchase confirmation email sent for document ${context.params.docId}`, {
-            messageId: info.messageId
-          });
+          await transporter.sendMail(mailOptions);
 
+          // Update the document to mark email as sent
           await snapshot.ref.update({
             emailSent: true,
             emailSentTimestamp: admin.firestore.FieldValue.serverTimestamp(),
           });
         } catch (error) {
-          logger.error("Error sending purchase confirmation email", {
-            error: error.message,
-            docId: context.params.docId
-          });
+          // Silent error handling for production
         }
       }
-      
+
       return null;
     }
-    
+
     // Special handling for shippingInfo collection
     if (collectionName === "shippingInfo") {
       try {
@@ -621,31 +568,24 @@ const onRequestDocCreate = functions
           </div>
         `;
 
-        // Send email notification about shipping info
         const mailOptions = {
           from: mailgunSender,
-          to: "cclosework@gmail.com", // Your email address
+          to: "cclosework@gmail.com",
           subject: emailSubject,
           html: emailHtml,
         };
 
         await transporter.verify();
-        const info = await transporter.sendMail(mailOptions);
-        logger.info(`Shipping information email sent for document ${context.params.docId}`, {
-          messageId: info.messageId
-        });
+        await transporter.sendMail(mailOptions);
 
         await snapshot.ref.update({
           emailSent: true,
           emailSentTimestamp: admin.firestore.FieldValue.serverTimestamp(),
         });
       } catch (error) {
-        logger.error("Error sending shipping information email", {
-          error: error.message,
-          docId: context.params.docId
-        });
+        // Silent error handling for production
       }
-      
+
       return null;
     }
 
@@ -664,15 +604,12 @@ const onRequestDocCreate = functions
       watchId = ""
     } = data;
 
-    // Validate minimum required fields - for Messages collection, the validation might be different
     const isMessageCollection = collectionName === "Messages";
 
     if (!isMessageCollection && (!email || !phoneNumber)) {
-      logger.error(`Missing required fields in document ${context.params.docId} of ${collectionName}.`, { data });
       return null;
     }
 
-    // Determine a human-friendly request type
     let requestTypeText = "";
     switch (mode) {
       case "trade":
@@ -688,12 +625,10 @@ const onRequestDocCreate = functions
         requestTypeText = collectionName === "Messages" ? "Customer Message" : "Website Request";
     }
 
-    // Different email structures based on collection
     let emailSubject = "";
     let emailHtml = "";
 
     if (isMessageCollection) {
-      // Email structure for Messages collection
       emailSubject = `New Customer Message - ${data.name || "Website Visitor"}`;
       emailHtml = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -715,7 +650,6 @@ const onRequestDocCreate = functions
         </div>
       `;
     } else {
-      // Email structure for Request collections (Trade, Sell, Inquiry)
       emailSubject = `New ${requestTypeText} - ${reference || "No Reference"}`;
       emailHtml = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -739,8 +673,7 @@ const onRequestDocCreate = functions
               ${watchPrice ? `<strong>Price:</strong> $${watchPrice}<br>` : ""}
               ${watchId ? `<strong>ID:</strong> ${watchId}<br>` : ""}
             </p>
-            ` : ""
-        }
+          ` : ""}
           ${photoURL ? `<h3>Photo:</h3><p><a href="${photoURL}">View Photo</a></p>` : ""}
           <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #666;">
             <p>This email was automatically sent from the Watch Salon website.</p>
@@ -749,64 +682,35 @@ const onRequestDocCreate = functions
       `;
     }
 
-    // Compose the email
     const mailOptions = {
       from: mailgunSender,
-      to: "cclosework@gmail.com",  // SENDING TO WHO
+      to: "cclosework@gmail.com",
       subject: emailSubject,
       html: emailHtml,
     };
 
     try {
-      // Verify the transporter first
-      logger.info("Verifying Mailgun SMTP connection...");
       await transporter.verify();
-      logger.info("Mailgun SMTP connection verified successfully");
+      await transporter.sendMail(mailOptions);
 
-      // Send the email
-      logger.info("Sending email notification via Mailgun SMTP...");
-      const info = await transporter.sendMail(mailOptions);
-      logger.info(`Email sent successfully for document ${context.params.docId}`, {
-        messageId: info.messageId,
-        collection: collectionName
-      });
-
-      // Update the document to mark email as sent
       await snapshot.ref.update({
         emailSent: true,
         emailSentTimestamp: admin.firestore.FieldValue.serverTimestamp(),
       });
-
-      logger.info(`Document ${context.params.docId} marked as processed`);
-
     } catch (error) {
-      // More comprehensive error logging
-      logger.error("Error sending email via Mailgun SMTP", {
-        error: error.message,
-        stack: error.stack,
-        code: error.code,
-        docId: context.params.docId,
-        collection: collectionName
-      });
-
-      // Save the error to the document for debugging
       try {
         await snapshot.ref.update({
           emailError: error.message,
           emailSentTimestamp: admin.firestore.FieldValue.serverTimestamp(),
         });
       } catch (updateError) {
-        logger.error("Failed to update document with error status", {
-          error: updateError.message,
-          docId: context.params.docId
-        });
+        // Silent error handling for production
       }
     }
 
     return null;
   });
 
-// Export all functions
 module.exports = {
   createPaymentIntent,
   stripeWebhook,

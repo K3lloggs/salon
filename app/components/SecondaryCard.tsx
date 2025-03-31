@@ -7,7 +7,6 @@ import { Ionicons } from '@expo/vector-icons';
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
-
 interface SecondaryCardProps {
   watch: {
     id: string;
@@ -22,8 +21,6 @@ interface SecondaryCardProps {
     year?: string;
     box?: boolean;
     papers?: boolean;
-    caseMaterial?: string;
-    caseDiameter?: string;
     newArrival?: boolean;
     hold?: boolean;
     [key: string]: any;
@@ -32,14 +29,16 @@ interface SecondaryCardProps {
 
 function SecondaryCardComponent({ watch }: SecondaryCardProps) {
   const scrollX = useRef(new Animated.Value(0)).current;
-  
-  // Process images array
-  const images = Array.isArray(watch.image) && watch.image.length > 0 
-    ? watch.image 
-    : typeof watch.image === 'string' && watch.image 
-      ? [watch.image] 
+  const flatListRef = useRef<Animated.FlatList<any>>(null);
+
+  // Process images similar to WatchCard:
+  // If there are 2 or more images, use images starting from index 1.
+  const images = Array.isArray(watch.image)
+    ? (watch.image.length >= 2 ? watch.image.slice(1) : watch.image)
+    : typeof watch.image === 'string' && watch.image
+      ? [watch.image]
       : [];
-  
+
   const showPagination = images.length > 1;
 
   return (
@@ -58,6 +57,7 @@ function SecondaryCardComponent({ watch }: SecondaryCardProps) {
       
       {/* Image carousel */}
       <Animated.FlatList
+        ref={flatListRef}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
@@ -78,12 +78,28 @@ function SecondaryCardComponent({ watch }: SecondaryCardProps) {
               style={styles.image}
               resizeMode="cover"
               fadeDuration={0}
-
             />
           </View>
         )}
-        initialNumToRender={1}
+        initialNumToRender={2}
         maxToRenderPerBatch={2}
+        // Since we sliced the images, the first rendered image is already the desired one.
+        getItemLayout={(_, index) => ({
+          length: SCREEN_WIDTH,
+          offset: SCREEN_WIDTH * index,
+          index,
+        })}
+        onScrollToIndexFailed={(info) => {
+          console.warn('Scroll to index failed:', info);
+          setTimeout(() => {
+            if (flatListRef.current && images.length > 0) {
+              flatListRef.current.scrollToIndex({
+                animated: false,
+                index: 0,
+              });
+            }
+          }, 100);
+        }}
       />
 
       {/* Box and Papers indicators */}
@@ -116,7 +132,6 @@ function SecondaryCardComponent({ watch }: SecondaryCardProps) {
   );
 }
 
-// Export component
 export const SecondaryCard = SecondaryCardComponent;
 
 const styles = StyleSheet.create({
@@ -144,7 +159,7 @@ const styles = StyleSheet.create({
     zIndex: 20,
   },
   stackedBadge: {
-    marginTop: 26, // Space between badges when stacked
+    marginTop: 26,
   },
   accessoriesContainer: {
     position: "absolute",
