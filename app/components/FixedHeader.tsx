@@ -9,7 +9,6 @@ import {
 } from 'react-native';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { useRouter, usePathname } from 'expo-router';
-import { SortOption } from '../context/SortContext';
 import { Watch } from '../types/Watch';
 import ShareButton from './ShareButton';
 
@@ -64,10 +63,12 @@ function FixedHeaderComponent({
     setSearchInputText(text);
   };
 
-  // Handle search clear - FIXED: no longer triggers onSearchChange
+  // Updated: clear parent search state when clearing input
   const handleClearSearch = () => {
     setSearchInputText('');
-    // Removed the onSearchChange call to prevent re-render
+    if (onSearchChange) {
+      onSearchChange('');
+    }
   };
 
   const handleSearchSubmit = () => {
@@ -213,7 +214,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     backgroundColor: '#ffffff',
-    height: 66, // Reduced height
+    height: 66,
   },
   leftSection: {
     flexDirection: 'row',
@@ -228,11 +229,11 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   iconButton: {
-    padding: 8, // Reduced padding
+    padding: 8,
     marginRight: 6,
-    borderRadius: 8, // Slightly reduced border radius
-    height: 42, // Smaller height
-    width: 42, // Smaller width
+    borderRadius: 8,
+    height: 42,
+    width: 42,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#f7f7f7',
@@ -255,8 +256,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#f7f7f7',
-    borderRadius: 8, // Matching the buttons
-    height: 42, // Matching the buttons
+    borderRadius: 8,
+    height: 42,
     marginRight: 6,
     ...Platform.select({
       ios: {
@@ -282,7 +283,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     height: '100%',
-    fontSize: 15, // Slightly smaller font
+    fontSize: 15,
     color: '#333',
     ...Platform.select({
       android: {

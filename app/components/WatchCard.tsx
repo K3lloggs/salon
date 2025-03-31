@@ -4,9 +4,8 @@ import {
   Text,
   StyleSheet,
   Animated,
-  Image,
-  Pressable,
   TouchableOpacity,
+  Image,
   LayoutChangeEvent,
   Platform,
 } from "react-native";
@@ -18,17 +17,49 @@ import LikeCounter from "./LikeCounter";
 import { OnHoldBadge } from "./HoldBadge";
 import { Ionicons } from "@expo/vector-icons";
 
-// CONSTANTS for consistent dimensions
 const IMAGE_ASPECT_RATIO = 9 / 11;
 const DEFAULT_CARD_WIDTH = 400;
-const PLACEHOLDER_IMAGE = 'https://via.placeholder.com/400x450/F6F7F8/F6F7F8';
 
 interface WatchCardProps {
   watch: Watch;
   disableNavigation?: boolean;
 }
 
-// Memoize accessory icons to prevent re-renders
+// Using Animated.Image to smoothly fade in images
+const OptimizedImage = memo(
+  ({ uri, width, onPress }: { uri: string; width: number; onPress: () => void }) => {
+    const imageOpacity = useRef(new Animated.Value(0)).current;
+
+    const handleImageLoad = () => {
+      Animated.timing(imageOpacity, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    };
+
+    return (
+      <View style={{ width, height: width / IMAGE_ASPECT_RATIO }}>
+        <Animated.Image
+          source={{ uri }}
+          style={[StyleSheet.absoluteFill, { opacity: imageOpacity }]}
+          resizeMode="cover"
+          onLoad={handleImageLoad}
+          progressiveRenderingEnabled={true}
+        />
+        {/* Transparent overlay for touch handling */}
+        <TouchableOpacity 
+          style={StyleSheet.absoluteFill}
+          activeOpacity={0.9}
+          onPress={onPress}
+        />
+      </View>
+    );
+  },
+  (prevProps, nextProps) =>
+    prevProps.uri === nextProps.uri && prevProps.width === nextProps.width
+);
+
 const WatchAccessories = memo(({ box, papers }: { box?: boolean; papers?: boolean }) => {
   if (!box && !papers) return null;
   return (
@@ -47,15 +78,13 @@ const WatchAccessories = memo(({ box, papers }: { box?: boolean; papers?: boolea
   );
 });
 
-// Memoized badges component
 const BadgesDisplay = memo(({ newArrival, hold }: { newArrival?: boolean; hold?: boolean }) => {
   if (!newArrival && !hold) return null;
-
   return (
     <View style={styles.badgesContainer} pointerEvents="none">
       {newArrival && <NewArrivalBadge />}
       {hold && (
-        <View style={newArrival ? styles.stackedBadge : null}>
+        <View style={newArrival ? styles.stackedBadge : undefined}>
           <OnHoldBadge />
         </View>
       )}
@@ -63,33 +92,6 @@ const BadgesDisplay = memo(({ newArrival, hold }: { newArrival?: boolean; hold?:
   );
 });
 
-// Create a highly optimized image component - using TouchableOpacity for better iOS touch handling
-const OptimizedImage = memo(
-  ({ uri, width, onPress }: { uri: string; width: number; onPress: () => void }) => {
-    // Separate the image from the touchable for better touch event handling
-    return (
-      <View style={{ width, height: width / IMAGE_ASPECT_RATIO }}>
-        <Image
-          source={{ uri }}
-          style={[StyleSheet.absoluteFill]}
-          resizeMode="cover"
-          fadeDuration={0}
-          progressiveRenderingEnabled={true}
-          defaultSource={{ uri: PLACEHOLDER_IMAGE }}
-        />
-        {/* Transparent overlay for touch handling */}
-        <TouchableOpacity
-          style={StyleSheet.absoluteFill}
-          activeOpacity={0.9}
-          onPress={onPress}
-        />
-      </View>
-    );
-  },
-  (prevProps, nextProps) => prevProps.uri === nextProps.uri && prevProps.width === nextProps.width
-);
-
-// Create the price component separately to avoid unnecessary re-renders
 const PriceDisplay = memo(({ price, msrp }: { price: number | string; msrp?: number }) => (
   <View style={styles.priceContainer}>
     {msrp ? (
@@ -107,39 +109,44 @@ const PriceDisplay = memo(({ price, msrp }: { price: number | string; msrp?: num
 const WatchCardComponent = ({ watch, disableNavigation = false }: WatchCardProps) => {
   const [cardWidth, setCardWidth] = useState<number>(DEFAULT_CARD_WIDTH);
   const scrollX = useRef(new Animated.Value(0)).current;
-  // Memoize the images array to prevent re-creation on each render
+
+  // Process images:
+  // - If watch.image is an array with 2+ images, use images starting from index 1.
+  // - If only one image exists (or it's a string), use that image.
   const images = useMemo(() => {
-    if (Array.isArray(watch.image) && watch.image.length > 0) {
-      return watch.image;
-    } else if (typeof watch.image === 'string' && watch.image) {
+    if (Array.isArray(watch.image)) {
+      if (watch.image.length >= 2) {
+        return watch.image.slice(1);
+      } else {
+        return watch.image;
+      }
+    } else if (typeof watch.image === "string" && watch.image) {
       return [watch.image];
     } else {
-      return [PLACEHOLDER_IMAGE]; // Always ensure at least one image
+      return []; // No image fallback
     }
   }, [watch.image]);
 
   const router = useRouter();
 
-  // Fix: Use direct string path navigation instead of the pathname/params object
   const handlePress = useCallback(() => {
     if (disableNavigation) return;
-
-    console.log('Navigation triggered for watch ID:', watch.id);
-    console.log('Watch ID type:', typeof watch.id);
-
     try {
-      // For iOS builds, use direct string navigation
       router.push("/watch/" + watch.id);
     } catch (error) {
-      console.error('Navigation error:', error);
-
-      // Fallback to object-based navigation
       router.push({
         pathname: "/watch/[id]",
-        params: { id: String(watch.id) }
+        params: { id: String(watch.id) },
       });
     }
   }, [disableNavigation, router, watch.id]);
+
+  // Wrap entire card in onPress so clicking anywhere triggers navigation.
+  const handleCardPress = useCallback(() => {
+    if (!disableNavigation) {
+      handlePress();
+    }
+  }, [disableNavigation, handlePress]);
 
   const onCardLayout = useCallback(
     (event: LayoutChangeEvent) => {
@@ -151,13 +158,11 @@ const WatchCardComponent = ({ watch, disableNavigation = false }: WatchCardProps
     [cardWidth]
   );
 
-  // For Animated.event with contentOffset, useNativeDriver MUST be false
   const handleScroll = Animated.event(
     [{ nativeEvent: { contentOffset: { x: scrollX } } }],
     { useNativeDriver: false }
   );
 
-  // Memoize getItemLayout to avoid recreating this function on each render
   const getItemLayout = useCallback(
     (_data: any, index: number) => ({
       length: cardWidth,
@@ -167,7 +172,6 @@ const WatchCardComponent = ({ watch, disableNavigation = false }: WatchCardProps
     [cardWidth]
   );
 
-  // Memoize renderItem to avoid recreating function on each render
   const renderItem = useCallback(
     ({ item: imageUrl }: { item: string }) => (
       <OptimizedImage uri={imageUrl} width={cardWidth} onPress={handlePress} />
@@ -176,13 +180,6 @@ const WatchCardComponent = ({ watch, disableNavigation = false }: WatchCardProps
   );
 
   const showPagination = images.length > 1;
-
-  // Handle tap on the entire card (outside the carousel)
-  const handleCardPress = useCallback(() => {
-    if (!disableNavigation) {
-      handlePress();
-    }
-  }, [disableNavigation, handlePress]);
 
   return (
     <View style={styles.cardWrapper} onLayout={onCardLayout}>
@@ -193,7 +190,6 @@ const WatchCardComponent = ({ watch, disableNavigation = false }: WatchCardProps
         disabled={disableNavigation}
       >
         <View style={styles.imageContainer}>
-          {/* Important: No pointerEvents="none" on the image container */}
           <Animated.FlatList
             horizontal
             pagingEnabled
@@ -215,18 +211,10 @@ const WatchCardComponent = ({ watch, disableNavigation = false }: WatchCardProps
             key={`watch-${watch.id}-${cardWidth}`}
           />
 
-          {/* Overlays with pointerEvents set to "box-none" to allow touches to pass through */}
           <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
-            {/* Badges section */}
             <BadgesDisplay newArrival={watch.newArrival} hold={!!watch.hold} />
-
-            {/* LikeCounter */}
             <LikeCounter watch={watch} initialLikes={watch.likes || 0} />
-
-            {/* WatchAccessories */}
             <WatchAccessories box={watch.box} papers={watch.papers} />
-
-            {/* Pagination */}
             {showPagination && (
               <View style={styles.paginationContainer} pointerEvents="none">
                 <Pagination
@@ -255,7 +243,6 @@ const WatchCardComponent = ({ watch, disableNavigation = false }: WatchCardProps
   );
 };
 
-// Memoize the entire component with a custom comparison function
 export const WatchCard = memo(
   WatchCardComponent,
   (prevProps, nextProps) =>
@@ -268,18 +255,20 @@ const styles = StyleSheet.create({
   cardWrapper: {
     marginHorizontal: 16,
     marginVertical: 12,
-    borderRadius: 10,
-    backgroundColor: "#fff",
+    borderRadius: 12,
+    backgroundColor: "#FFFFFF",
     width: "100%",
     maxWidth: DEFAULT_CARD_WIDTH,
     alignSelf: "center",
     overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#C8C7CC",
     ...Platform.select({
       ios: {
-        shadowColor: "#002d4e",
-        shadowOpacity: 0.2,
+        shadowColor: "#000",
+        shadowOpacity: 0.15,
         shadowOffset: { width: 0, height: 4 },
-        shadowRadius: 12,
+        shadowRadius: 14,
       },
       android: {
         elevation: 6,
@@ -288,7 +277,7 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 10,
+    borderRadius: 12,
     overflow: "hidden",
   },
   imageContainer: {
@@ -326,14 +315,14 @@ const styles = StyleSheet.create({
   modelPriceContainer: {
     position: "relative",
     marginTop: 4,
-    minHeight: 44, // Increased to accommodate larger MSRP and price
+    minHeight: 44,
   },
   model: {
     fontSize: 18,
     fontWeight: "500",
     color: "#002d4e",
     letterSpacing: 0.3,
-    paddingRight: 120, // Increased to account for MSRP + price
+    paddingRight: 120,
   },
   price: {
     fontSize: 20,
@@ -348,7 +337,7 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   stackedBadge: {
-    marginTop: 26, // Space between badges when stacked
+    marginTop: 26,
   },
   paginationContainer: {
     position: "absolute",

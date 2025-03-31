@@ -27,9 +27,10 @@ const SearchBar: React.FC<SearchBarProps> = ({
     setSearchText(text);
   };
 
+  // Updated: notify parent to clear the search state
   const handleClearSearch = () => {
     setSearchText('');
-    // Don't call onSearch here to prevent re-render
+    onSearch('');
   };
 
   const handleSearchSubmit = () => {
@@ -96,7 +97,7 @@ const styles = StyleSheet.create({
     color: '#333',
     height: '100%',
     paddingVertical: 8,
-    paddingRight: 30, // Add some padding to prevent text from going under the clear button
+    paddingRight: 30,
   },
   clearButton: {
     padding: 6,

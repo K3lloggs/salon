@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import {
   View,
   FlatList,
@@ -6,12 +6,13 @@ import {
   ActivityIndicator,
   Text,
   SafeAreaView,
+  Animated,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { WatchCard } from '../components/WatchCard';
 import { useWatches } from '../hooks/useWatches';
 import { Ionicons } from '@expo/vector-icons';
-import BackButton from '../components/BackButton'; // Import your BackButton component
+import BackButton from '../components/BackButton';
 
 function BrandDetailHeader({ title }: { title: string }) {
   return (
@@ -38,6 +39,8 @@ export default function BrandDetailScreen() {
     typeof params.brandName === 'string' ? params.brandName : '';
   const { watches, loading, error } = useWatches();
   const [refreshing, setRefreshing] = useState(false);
+  const [contentReady, setContentReady] = useState(false);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
 
   // Filter watches by brand (case insensitive)
   const filteredWatches = useMemo(() => {
@@ -45,6 +48,22 @@ export default function BrandDetailScreen() {
       (watch) => watch.brand.toLowerCase() === brandName.toLowerCase()
     );
   }, [brandName, watches]);
+
+  // Start animation when data is loaded
+  useEffect(() => {
+    if (!loading && watches.length > 0) {
+      const timeoutId = setTimeout(() => {
+        setContentReady(true);
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }).start();
+      }, 100);
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [loading, watches, fadeAnim]);
 
   // Pull-to-refresh handler
   const handleRefresh = useCallback(() => {
@@ -59,39 +78,43 @@ export default function BrandDetailScreen() {
     <SafeAreaView style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
       
-      {/* Use the header component with the back button */}
+      {/* Header with back button */}
       <BrandDetailHeader title={brandName} />
 
-      {loading ? (
+      {loading || !contentReady ? (
         <View style={styles.centered}>
           <ActivityIndicator size="large" color="#002d4e" />
         </View>
-      ) : error ? (
-        <View style={styles.centered}>
-          <Text style={styles.errorText}>
-            Error loading {brandName} watches.
-          </Text>
-          <View style={styles.retryButton}>
-            <Text style={styles.retryButtonText} onPress={handleRefresh}>Retry</Text>
-          </View>
-        </View>
-      ) : filteredWatches.length === 0 ? (
-        <View style={styles.centered}>
-          <Ionicons name="watch-outline" size={70} color="#002d4e" />
-          <Text style={styles.emptyTitle}>
-            No {brandName} Watches Available
-          </Text>
-        </View>
       ) : (
-        <FlatList
-          data={filteredWatches}
-          renderItem={({ item }) => <WatchCard watch={item} />}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.list}
-          refreshing={refreshing}
-          onRefresh={handleRefresh}
-          showsVerticalScrollIndicator={false}
-        />
+        <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
+          {error ? (
+            <View style={styles.centered}>
+              <Text style={styles.errorText}>
+                Error loading {brandName} watches.
+              </Text>
+              <View style={styles.retryButton}>
+                <Text style={styles.retryButtonText} onPress={handleRefresh}>Retry</Text>
+              </View>
+            </View>
+          ) : filteredWatches.length === 0 ? (
+            <View style={styles.centered}>
+              <Ionicons name="watch-outline" size={70} color="#002d4e" />
+              <Text style={styles.emptyTitle}>
+                No {brandName} Watches Available
+              </Text>
+            </View>
+          ) : (
+            <FlatList
+              data={filteredWatches}
+              renderItem={({ item }) => <WatchCard watch={item} />}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={styles.list}
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              showsVerticalScrollIndicator={false}
+            />
+          )}
+        </Animated.View>
       )}
     </SafeAreaView>
   );

@@ -57,16 +57,6 @@ export default function DetailScreen() {
   const [error, setError] = useState<string | null>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  // Log info for debugging
-  useEffect(() => {
-    console.log("DetailScreen mounted", {
-      id,
-      idType: typeof id,
-      loading,
-      watchesCount: watches?.length || 0
-    });
-  }, [id, loading, watches]);
-
   // Preload cache
   useEffect(() => {
     preloadComponentCache();
@@ -89,7 +79,6 @@ export default function DetailScreen() {
       found = watches.find((w) => Number(w.id) === Number(id));
     }
 
-    console.log("Watch lookup result:", found ? "Found" : "Not found");
     return found;
   }, [watches, id]);
 
@@ -99,8 +88,6 @@ export default function DetailScreen() {
 
     if (!loading && watches && watches.length > 0) {
       if (!watch) {
-        console.warn(`Watch with ID ${id} not found in collection of ${watches.length} watches`);
-        console.log("Available watch IDs:", watches.map(w => w.id));
         setError(`Watch not found. ID: ${id}`);
         timeoutId = setTimeout(() => router.back(), 1500);
       } else {
@@ -219,9 +206,15 @@ export default function DetailScreen() {
                 {/* Brand & LikeList Container with original positioning */}
                 <View style={styles.brandLikeContainer}>
                   <View style={styles.brandContainer}>
-                    <Text style={styles.brand} numberOfLines={1} ellipsizeMode="tail">
-                      {watch.brand || " "}
-                    </Text>
+                    {watch.brand === "Vacheron Constantin" ? (
+                      <Text style={styles.brandSmaller} numberOfLines={1} ellipsizeMode="tail">
+                        {watch.brand}
+                      </Text>
+                    ) : (
+                      <Text style={styles.brand} numberOfLines={1} ellipsizeMode="tail">
+                        {watch.brand || " "}
+                      </Text>
+                    )}
                   </View>
 
                   <View style={styles.likeListContainer}>
@@ -304,7 +297,7 @@ export default function DetailScreen() {
             <StripeCheckout
               watch={watch}
               onSuccess={handlePurchaseSuccess}
-              onCancel={() => console.log("Purchase cancelled")}
+              onCancel={() => {}}
             />
           )}
         </View>
@@ -358,6 +351,13 @@ const styles = StyleSheet.create({
   },
   brand: {
     fontSize: 30,
+    fontWeight: "700",
+    color: "#002d4e",
+    letterSpacing: -0.5,
+    width: '100%',
+  },
+  brandSmaller: {
+    fontSize: 24, // Smaller font size specifically for Vacheron Constantin
     fontWeight: "700",
     color: "#002d4e",
     letterSpacing: -0.5,
@@ -440,9 +440,9 @@ const styles = StyleSheet.create({
   },
   buttonWrapper: { flex: 1, marginHorizontal: 8, marginVertical: -34 },
   /* SPECS */
-  specsContainer: { marginTop: 84, paddingHorizontal: 3 },
+  specsContainer: { marginTop: 20, paddingHorizontal: 3 },
   specRow: {
-    gap: 30,
+    gap: 12,
     flexDirection: "row",
     alignItems: "flex-start",
     paddingVertical: 12,
@@ -456,7 +456,7 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     letterSpacing: -0.2,
     flex: 1,
-    marginLeft: 30,
+    marginLeft: 0,
   },
   /* FOOTER */
   footerContainer: { paddingVertical: 20, paddingHorizontal: 16 },
@@ -495,4 +495,5 @@ const styles = StyleSheet.create({
   stripeButtonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
   soldButton: { backgroundColor: "#888" },
   onHoldButton: { backgroundColor: "#002d4e" },
-});
+},
+);
