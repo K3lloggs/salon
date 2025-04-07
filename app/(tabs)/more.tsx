@@ -65,6 +65,13 @@ export default function MoreScreen() {
       );
   };
 
+  // Function to handle App Store review link
+  const handleRateAppPress = () => {
+    Linking.openURL(
+      'https://apps.apple.com/us/app/watch-scl/id6743322357?action=write-review'
+    );
+  };
+
   return (
     <ScrollView style={styles.container}>
       <FixedHeader />
@@ -141,9 +148,7 @@ export default function MoreScreen() {
         <Text style={styles.sectionTitle}>App</Text>
         <TouchableOpacity
           style={styles.menuItem}
-          onPress={() =>
-            Linking.openURL('https://apps.apple.com/app/your-app-id')
-          }
+          onPress={handleRateAppPress}
         >
           <Text style={styles.menuText}>Rate the App</Text>
           <Ionicons name="chevron-forward" size={20} color="#002d4e" />
@@ -174,7 +179,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 16,
-    paddingHorizontal: 4, // Reduced horizontal padding to bring items closer to the left edge
+    paddingHorizontal: 4,
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
   },
@@ -183,7 +188,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   textContainer: {
-    width: 100, // Adjusted fixed width to shift the logo closer to the left edge
+    width: 100,
   },
   socialIcon: {
     marginLeft: 4,

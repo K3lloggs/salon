@@ -8,6 +8,7 @@ import {
   Image,
   LayoutChangeEvent,
   Platform,
+  Dimensions,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Watch } from "../types/Watch";
@@ -18,7 +19,7 @@ import { OnHoldBadge } from "./HoldBadge";
 import { Ionicons } from "@expo/vector-icons";
 
 const IMAGE_ASPECT_RATIO = 9 / 11;
-const DEFAULT_CARD_WIDTH = 400;
+const DEFAULT_CARD_WIDTH = Dimensions.get("window").width;
 
 interface WatchCardProps {
   watch: Watch;
@@ -48,7 +49,7 @@ const OptimizedImage = memo(
           progressiveRenderingEnabled={true}
         />
         {/* Transparent overlay for touch handling */}
-        <TouchableOpacity 
+        <TouchableOpacity
           style={StyleSheet.absoluteFill}
           activeOpacity={0.9}
           onPress={onPress}
@@ -94,15 +95,17 @@ const BadgesDisplay = memo(({ newArrival, hold }: { newArrival?: boolean; hold?:
 
 const PriceDisplay = memo(({ price, msrp }: { price: number | string; msrp?: number }) => (
   <View style={styles.priceContainer}>
-    {msrp ? (
-      <View style={styles.msrpContainer}>
-        <Text style={styles.msrpLabel}>MSRP: </Text>
-        <Text style={styles.msrpValue}>${msrp.toLocaleString()}</Text>
-      </View>
-    ) : null}
-    <Text style={styles.price}>
-      ${typeof price === "number" ? price.toLocaleString() : "N/A"}
-    </Text>
+    <View>
+      {msrp ? (
+        <View style={styles.msrpContainer}>
+          <Text style={styles.msrpLabel}>MSRP: </Text>
+          <Text style={styles.msrpValue}>${msrp.toLocaleString()}</Text>
+        </View>
+      ) : null}
+      <Text style={[styles.price, msrp ? styles.withMsrp : styles.singlePrice]}>
+        ${typeof price === "number" ? price.toLocaleString() : "N/A"}
+      </Text>
+    </View>
   </View>
 ));
 
@@ -228,15 +231,17 @@ const WatchCardComponent = ({ watch, disableNavigation = false }: WatchCardProps
         </View>
 
         <View style={styles.infoContainer}>
-          <Text style={styles.brand} numberOfLines={1}>
-            {watch.brand || "Brand"}
-          </Text>
-          <View style={styles.modelPriceContainer}>
-            <Text style={styles.model} numberOfLines={2}>
-              {watch.model || "Model"}
+          <View style={styles.headerRow}>
+            <Text style={styles.brand} numberOfLines={1}>
+              {watch.brand || "Brand"}
             </Text>
-            <PriceDisplay price={watch.price || 0} msrp={watch.msrp} />
+            <View style={styles.priceWrapper}>
+              <PriceDisplay price={watch.price || 0} msrp={watch.msrp} />
+            </View>
           </View>
+          <Text style={styles.model} numberOfLines={3}>
+            {watch.model || "Model"}
+          </Text>
         </View>
       </TouchableOpacity>
     </View>
@@ -253,12 +258,10 @@ export const WatchCard = memo(
 
 const styles = StyleSheet.create({
   cardWrapper: {
-    marginHorizontal: 16,
     marginVertical: 12,
     borderRadius: 12,
     backgroundColor: "#FFFFFF",
     width: "100%",
-    maxWidth: DEFAULT_CARD_WIDTH,
     alignSelf: "center",
     overflow: "hidden",
     borderWidth: 1,
@@ -304,31 +307,71 @@ const styles = StyleSheet.create({
   },
   infoContainer: {
     padding: 16,
+    paddingBottom: 12,
     backgroundColor: "#FFFFFF",
   },
+  headerRow: {
+    position: "relative",
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 0,
+    width: "100%",
+  },
+  priceWrapper: {
+    position: "absolute",
+    right: 0,
+    top: 0,
+  },
   brand: {
-    fontSize: 22,
-    fontWeight: "700",
+    fontSize: 20,
+    fontWeight: "600",
     color: "#002d4e",
     letterSpacing: 0.3,
-  },
-  modelPriceContainer: {
-    position: "relative",
-    marginTop: 4,
-    minHeight: 44,
+    flex: 1,
+    paddingRight: 8,
   },
   model: {
-    fontSize: 18,
+    fontSize: 12,
     fontWeight: "500",
     color: "#002d4e",
-    letterSpacing: 0.3,
-    paddingRight: 120,
+    letterSpacing: 0.4,
+    marginTop: 2,
+    marginRight: 100,
+  },
+  priceContainer: {
+    justifyContent: "flex-start",
+    alignItems: "flex-end",
+  },
+  msrpContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 1,
+    justifyContent: "flex-end",
+  },
+  msrpLabel: {
+    fontSize: 12,
+    color: "#002d4e",
+    opacity: 0.8,
+  },
+  msrpValue: {
+    fontSize: 12,
+    color: "#002d4e",
+    opacity: 0.8,
+    textDecorationLine: "line-through",
+    fontWeight: "700",
   },
   price: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "700",
     color: "#002d4e",
     letterSpacing: 0.3,
+  },
+  withMsrp: {
+    alignSelf: "flex-end",
+  },
+  singlePrice: {
+    lineHeight: 24,
+    marginLeft: 0,
   },
   badgesContainer: {
     position: "absolute",
@@ -345,29 +388,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 10,
-  },
-  priceContainer: {
-    position: "absolute",
-    right: 0,
-    top: 0,
-    alignItems: "flex-end",
-  },
-  msrpContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 3,
-  },
-  msrpLabel: {
-    fontSize: 14,
-    color: "#002d4e",
-    opacity: 0.8,
-  },
-  msrpValue: {
-    fontSize: 14,
-    color: "#002d4e",
-    opacity: 0.8,
-    textDecorationLine: "line-through",
-    fontWeight: "700",
   },
 });
 
