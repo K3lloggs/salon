@@ -13,12 +13,14 @@ import {
   Platform,
   ActivityIndicator,
   KeyboardTypeOptions,
-  ScrollView,
+  Dimensions,
 } from 'react-native';
-import { BlurView } from 'expo-blur';
 import Modal from 'react-native-modal';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../firebaseConfig';
+import { BlurView } from 'expo-blur'; // Add this import if not already using expo-blur
+
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 interface MessageScreenProps {
   visible: boolean;
@@ -87,7 +89,6 @@ const MessageScreen: React.FC<MessageScreenProps> = ({ visible, onClose }) => {
     try {
       setSending(true);
 
-      // Add document to Firestore Messages collection
       await addDoc(collection(db, 'Messages'), {
         name,
         email,
@@ -95,7 +96,7 @@ const MessageScreen: React.FC<MessageScreenProps> = ({ visible, onClose }) => {
         subject,
         message,
         createdAt: serverTimestamp(),
-        read: false
+        read: false,
       });
 
       // Reset form and close modal
@@ -114,43 +115,67 @@ const MessageScreen: React.FC<MessageScreenProps> = ({ visible, onClose }) => {
     } catch (error) {
       setSending(false);
       console.error('Error sending message:', error);
-      Alert.alert(
-        'Error',
-        'There was a problem sending your message. Please try again later.'
-      );
+      Alert.alert('Error', 'There was a problem sending your message. Please try again later.');
     }
-  }, [name, email, phone, subject, message, sending, onClose]);
+  }, [name, email, phone, subject, message, onClose]);
+
+  const resetAndClose = () => {
+    // Clear form when closing
+    setName('');
+    setEmail('');
+    setPhone('');
+    setSubject('');
+    setMessage('');
+    onClose();
+  };
 
   return (
     <Modal
       isVisible={visible}
-      onBackdropPress={onClose}
-      onBackButtonPress={onClose}
-      swipeDirection="down"
-      onSwipeComplete={onClose}
+      onBackdropPress={resetAndClose}
+      onBackButtonPress={resetAndClose}
+      swipeDirection={['down']}
+      onSwipeComplete={resetAndClose}
       animationIn="slideInUp"
       animationOut="slideOutDown"
+      animationInTiming={500}
+      animationOutTiming={500}
       style={styles.modalStyle}
+      propagateSwipe={true}
+      backdropOpacity={0.5}
+      statusBarTranslucent
+      useNativeDriver
+      deviceHeight={SCREEN_HEIGHT}
     >
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
-      >
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <SafeAreaView style={styles.container}>
-            <View style={styles.headerContainer}>
-              <View style={styles.swipeIndicator} />
-              <View style={styles.header}>
-                <Text style={styles.headerTitle}>Send Message</Text>
-              </View>
+      <BlurView intensity={10} tint="light" style={styles.blurContainer}>
+        <View style={styles.modalContainer}>
+          {/* Drag Handle */}
+          <TouchableWithoutFeedback onPress={resetAndClose}>
+            <View style={styles.dragHandleContainer}>
+              <View style={styles.dragHandle} />
             </View>
-            <ScrollView
-              bounces={false}
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.scrollContent}
+          </TouchableWithoutFeedback>
+
+          {/* Header */}
+          <View style={styles.header}>
+            <Text style={styles.headerTitle}>Send Message</Text>
+            <TouchableOpacity 
+              style={styles.closeButton} 
+              onPress={resetAndClose}
+              hitSlop={{top: 15, bottom: 15, left: 15, right: 15}}
             >
-              <BlurView intensity={50} tint="light" style={styles.formContainer}>
+              <Text style={styles.closeButtonText}>✕</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Form Content */}
+          <KeyboardAvoidingView
+            style={styles.keyboardAvoiding}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 30 : 0}
+          >
+            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+              <View style={styles.formContainer}>
                 <CustomInput
                   placeholder="Full Name"
                   value={name}
@@ -182,6 +207,12 @@ const MessageScreen: React.FC<MessageScreenProps> = ({ visible, onClose }) => {
                   multiline
                   style={styles.messageInput}
                 />
+              </View>
+            </TouchableWithoutFeedback>
+
+            {/* Fixed Button Container */}
+            <SafeAreaView style={styles.buttonSafeArea}>
+              <View style={styles.buttonContainer}>
                 <TouchableOpacity
                   style={[styles.sendButton, sending && styles.disabledButton]}
                   onPress={handleSend}
@@ -195,19 +226,11 @@ const MessageScreen: React.FC<MessageScreenProps> = ({ visible, onClose }) => {
                     <Text style={styles.sendButtonText}>SEND MESSAGE</Text>
                   )}
                 </TouchableOpacity>
-                <View style={styles.contactInfo}>
-                  <View style={styles.contactRow}>
-                    <Text style={styles.contactText}>617-267-9100</Text>
-                  </View>
-                  <View style={styles.contactRow}>
-                    <Text style={styles.contactText}>39 Newbury Street, Boston</Text>
-                  </View>
-                </View>
-              </BlurView>
-            </ScrollView>
-          </SafeAreaView>
-        </TouchableWithoutFeedback>
-      </KeyboardAvoidingView>
+              </View>
+            </SafeAreaView>
+          </KeyboardAvoidingView>
+        </View>
+      </BlurView>
     </Modal>
   );
 };
@@ -215,67 +238,121 @@ const MessageScreen: React.FC<MessageScreenProps> = ({ visible, onClose }) => {
 const styles = StyleSheet.create({
   modalStyle: {
     margin: 0,
+    justifyContent: 'flex-end',
   },
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
+  blurContainer: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    overflow: 'hidden',
   },
-  headerContainer: {
-    backgroundColor: '#fff',
+  modalContainer: {
+    backgroundColor: '#F2F3F5', // Light grey background
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: SCREEN_HEIGHT * 0.85,
   },
-  swipeIndicator: {
-    alignSelf: 'center',
+  dragHandleContainer: {
+    width: '100%',
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  dragHandle: {
     width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#ccc',
-    marginBottom: 10,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: '#CCCCCC',
   },
   header: {
-    paddingHorizontal: 16,
+    flexDirection: 'row',
+    paddingHorizontal: 24,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderColor: '#ccc',
+    borderBottomColor: '#E5E5E5',
+    justifyContent: 'center',
     alignItems: 'center',
+    position: 'relative',
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: '700',
     color: '#002d4e',
+    letterSpacing: 0.5,
   },
-  scrollContent: {
+  closeButton: {
+    position: 'absolute',
+    right: 16,
+    top: 0,
+    width: 30,
+    height: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  closeButtonText: {
+    fontSize: 22,
+    color: '#666666',
+  },
+  keyboardAvoiding: {
     flexGrow: 1,
-    paddingBottom: 20,
   },
   formContainer: {
-    padding: 20,
-    margin: 16,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.85)',
+    padding: 24,
+    backgroundColor: 'transparent',
   },
   inputWrapper: {
     marginBottom: 16,
-    backgroundColor: '#F5F5F5',
-    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+      },
+      android: {
+        elevation: 1,
+      },
+    }),
   },
   input: {
     padding: 16,
     fontSize: 16,
-    color: '#002d4e',
-    backgroundColor: '#F5F5F5',
+    color: '#333333',
+    backgroundColor: 'transparent',
   },
   messageInput: {
-    height: 120,
+    height: 100,
     textAlignVertical: 'top',
+  },
+  buttonSafeArea: {
+    backgroundColor: 'transparent',
+  },
+  buttonContainer: {
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    backgroundColor: 'transparent',
+    borderTopWidth: 1,
+    borderTopColor: '#E5E5E5',
   },
   sendButton: {
     backgroundColor: '#002d4e',
     padding: 16,
-    borderRadius: 8,
+    borderRadius: 12,
     alignItems: 'center',
-    marginTop: 24,
-    marginBottom: 20,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#002d4e',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.2,
+        shadowRadius: 5,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
   },
   disabledButton: {
     opacity: 0.7,
@@ -285,20 +362,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     letterSpacing: 1,
-  },
-  contactInfo: {
-    marginTop: 8,
-    alignItems: 'center',
-  },
-  contactRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  contactText: {
-    fontSize: 16,
-    color: '#002d4e',
-    fontWeight: '500',
   },
 });
 
