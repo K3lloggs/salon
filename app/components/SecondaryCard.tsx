@@ -3,7 +3,7 @@ import {
   View,
   Image,
   Animated,
-  Dimensions,
+  useWindowDimensions,
   Text,
   Modal,
   ScrollView,
@@ -19,8 +19,6 @@ import { Pagination } from "./Pagination";
 import { NewArrivalBadge } from "./NewArrivalBadge";
 import { OnHoldBadge } from "./HoldBadge";
 import { FavoriteButton } from "./FavoriteButton";
-
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 interface Watch {
   id: string;
@@ -48,7 +46,135 @@ interface SecondaryCardProps {
   watch: Watch;
 }
 
+// Function to create dynamic styles based on the current screen width.
+const getStyles = (screenWidth: number) =>
+  RNStyleSheet.create({
+    container: {
+      width: screenWidth,
+      height: screenWidth * 0.9,
+      backgroundColor: "#fff",
+      borderRadius: 12,
+      overflow: "hidden",
+      marginBottom: 16,
+      position: "relative",
+    },
+    card: {
+      flex: 1,
+    },
+    imageContainer: {
+      width: screenWidth,
+      height: "100%",
+    },
+    image: {
+      width: "100%",
+      height: "100%",
+    },
+    badgesContainer: {
+      position: "absolute",
+      top: 12,
+      left: 12,
+      zIndex: 20,
+    },
+    stackedBadge: {
+      marginTop: 26,
+    },
+    paginationContainer: {
+      position: "absolute",
+      bottom: 12,
+      right: 12,
+      zIndex: 20,
+    },
+  });
+
+const getModalStyles = (screenWidth: number) =>
+  RNStyleSheet.create({
+    modalContainer: {
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.95)",
+    },
+    modalBackground: {
+      position: "absolute",
+      width: "100%",
+      height: "100%",
+    },
+    modalContent: {
+      flex: 1,
+    },
+    zoomScrollView: {
+      width: screenWidth,
+      height: "100%",
+    },
+    zoomScrollContent: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    zoomImage: {
+      width: screenWidth,
+      height: screenWidth * 0.9,
+    },
+    closeButton: {
+      position: "absolute",
+      top: 40,
+      left: 16,
+      backgroundColor: "rgba(0,0,0,0.6)",
+      borderRadius: 20,
+      padding: 8,
+      zIndex: 20,
+    },
+    favoriteButton: {
+      position: "absolute",
+      top: 40,
+      right: 16,
+      zIndex: 20,
+    },
+    paginationContainer: {
+      position: "absolute",
+      top: 90,
+      right: 16,
+      zIndex: 20,
+    },
+    bottomLeftContainer: {
+      position: "absolute",
+      bottom: 12,
+      left: 12,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+    },
+    bottomLeftText: {
+      color: "#fff",
+      fontSize: 16,
+      fontWeight: "500",
+      marginBottom: 4,
+    },
+    bottomRightContainer: {
+      position: "absolute",
+      bottom: 12,
+      right: 12,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      alignItems: "flex-end",
+    },
+    bottomRightMsrp: {
+      color: "#fff",
+      fontSize: 16,
+      textDecorationLine: "line-through",
+      opacity: 0.8,
+      marginBottom: 4,
+    },
+    bottomRightText: {
+      color: "#fff",
+      fontSize: 18,
+      fontWeight: "600",
+    },
+  });
+
 const SecondaryCardComponent: React.FC<SecondaryCardProps> = ({ watch }) => {
+  // Get live dimensions from hook (updates on orientation change).
+  const { width: screenWidth } = useWindowDimensions();
+  const styles = getStyles(screenWidth);
+  const modalStyles = getModalStyles(screenWidth);
+
   const scrollX = useRef(new Animated.Value(0)).current;
   const flatListRef = useRef<Animated.FlatList<string>>(null);
   const [zoomVisible, setZoomVisible] = useState(false);
@@ -133,8 +259,8 @@ const SecondaryCardComponent: React.FC<SecondaryCardProps> = ({ watch }) => {
             )}
             initialNumToRender={1}
             getItemLayout={(_, index) => ({
-              length: SCREEN_WIDTH,
-              offset: SCREEN_WIDTH * index,
+              length: screenWidth,
+              offset: screenWidth * index,
               index,
             })}
           />
@@ -159,7 +285,7 @@ const SecondaryCardComponent: React.FC<SecondaryCardProps> = ({ watch }) => {
             <View style={modalStyles.paginationContainer}>
               <Pagination
                 scrollX={modalScrollX}
-                cardWidth={SCREEN_WIDTH}
+                cardWidth={screenWidth}
                 totalItems={images.length}
               />
             </View>
@@ -187,7 +313,10 @@ const SecondaryCardComponent: React.FC<SecondaryCardProps> = ({ watch }) => {
               </Text>
             ) : null}
             <Text style={modalStyles.bottomRightText}>
-              ${typeof watch.price === "number" ? watch.price.toLocaleString() : "N/A"}
+              $
+              {typeof watch.price === "number"
+                ? watch.price.toLocaleString()
+                : "N/A"}
             </Text>
           </View>
         </View>
@@ -196,7 +325,7 @@ const SecondaryCardComponent: React.FC<SecondaryCardProps> = ({ watch }) => {
   );
 
   return (
-    // Wrap the entire component in GestureHandlerRootView so that all gesture handlers work properly.
+    // Wrap the entire component in GestureHandlerRootView for proper gesture handling.
     <GestureHandlerRootView style={{ flex: 1 }}>
       <View style={styles.container}>
         {/* Badges (New Arrival, On Hold) */}
@@ -230,7 +359,7 @@ const SecondaryCardComponent: React.FC<SecondaryCardProps> = ({ watch }) => {
                 )}
                 scrollEventThrottle={16}
                 decelerationRate="fast"
-                snapToInterval={SCREEN_WIDTH}
+                snapToInterval={screenWidth}
                 snapToAlignment="center"
                 data={images}
                 keyExtractor={(_, index) => `${watch.id}-detail-${index}`}
@@ -238,8 +367,8 @@ const SecondaryCardComponent: React.FC<SecondaryCardProps> = ({ watch }) => {
                 initialNumToRender={2}
                 maxToRenderPerBatch={2}
                 getItemLayout={(_, index) => ({
-                  length: SCREEN_WIDTH,
-                  offset: SCREEN_WIDTH * index,
+                  length: screenWidth,
+                  offset: screenWidth * index,
                   index,
                 })}
                 onScrollToIndexFailed={handleScrollToIndexFailed}
@@ -249,7 +378,7 @@ const SecondaryCardComponent: React.FC<SecondaryCardProps> = ({ watch }) => {
                   <View style={styles.paginationContainer}>
                     <Pagination
                       scrollX={scrollX}
-                      cardWidth={SCREEN_WIDTH}
+                      cardWidth={screenWidth}
                       totalItems={images.length}
                     />
                   </View>
@@ -265,123 +394,3 @@ const SecondaryCardComponent: React.FC<SecondaryCardProps> = ({ watch }) => {
 };
 
 export const SecondaryCard = memo(SecondaryCardComponent);
-
-const styles = RNStyleSheet.create({
-  container: {
-    width: SCREEN_WIDTH,
-    height: SCREEN_WIDTH * 0.9,
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    overflow: "hidden",
-    marginBottom: 16,
-    position: "relative",
-  },
-  card: {
-    flex: 1,
-  },
-  imageContainer: {
-    width: SCREEN_WIDTH,
-    height: "100%",
-  },
-  image: {
-    width: "100%",
-    height: "100%",
-  },
-  badgesContainer: {
-    position: "absolute",
-    top: 12,
-    left: 12,
-    zIndex: 20,
-  },
-  stackedBadge: {
-    marginTop: 26,
-  },
-  paginationContainer: {
-    position: "absolute",
-    bottom: 12,
-    right: 12,
-    zIndex: 20,
-  },
-});
-
-const modalStyles = RNStyleSheet.create({
-  modalContainer: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.95)",
-  },
-  modalBackground: {
-    position: "absolute",
-    width: "100%",
-    height: "100%",
-  },
-  modalContent: {
-    flex: 1,
-  },
-  zoomScrollView: {
-    width: SCREEN_WIDTH,
-    height: "100%",
-  },
-  zoomScrollContent: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  zoomImage: {
-    width: SCREEN_WIDTH,
-    height: SCREEN_WIDTH * 0.9,
-  },
-  closeButton: {
-    position: "absolute",
-    top: 40,
-    left: 16,
-    backgroundColor: "rgba(0,0,0,0.6)",
-    borderRadius: 20,
-    padding: 8,
-    zIndex: 20,
-  },
-  favoriteButton: {
-    position: "absolute",
-    top: 40,
-    right: 16,
-    zIndex: 20,
-  },
-  paginationContainer: {
-    position: "absolute",
-    top: 90,
-    right: 16,
-    zIndex: 20,
-  },
-  bottomLeftContainer: {
-    position: "absolute",
-    bottom: 12,
-    left: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  bottomLeftText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "500",
-    marginBottom: 4,
-  },
-  bottomRightContainer: {
-    position: "absolute",
-    bottom: 12,
-    right: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    alignItems: "flex-end",
-  },
-  bottomRightMsrp: {
-    color: "#fff",
-    fontSize: 16,
-    textDecorationLine: "line-through",
-    opacity: 0.8,
-    marginBottom: 4,
-  },
-  bottomRightText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "600",
-  },
-});
