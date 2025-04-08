@@ -3,13 +3,17 @@ import {
   View,
   Image,
   Animated,
-  StyleSheet,
   Dimensions,
   Text,
-  TouchableOpacity,
   Modal,
   ScrollView,
+  StyleSheet as RNStyleSheet,
 } from "react-native";
+import {
+  GestureHandlerRootView,
+  TapGestureHandler,
+  State,
+} from "react-native-gesture-handler";
 import { Ionicons } from "@expo/vector-icons";
 import { Pagination } from "./Pagination";
 import { NewArrivalBadge } from "./NewArrivalBadge";
@@ -50,19 +54,25 @@ const SecondaryCardComponent: React.FC<SecondaryCardProps> = ({ watch }) => {
   const [zoomVisible, setZoomVisible] = useState(false);
   const modalScrollX = useRef(new Animated.Value(0)).current;
 
-  // Normalize images: use all images if available.
-  const images = Array.isArray(watch.image)
-    ? watch.image.length > 0
+  // Normalize images from the watch object.
+  const images =
+    Array.isArray(watch.image) && watch.image.length > 0
       ? watch.image
-      : []
-    : typeof watch.image === "string" && watch.image
-    ? [watch.image]
-    : [];
+      : typeof watch.image === "string" && watch.image
+      ? [watch.image]
+      : [];
 
   const showPagination = images.length > 1;
 
   const handleZoom = () => {
     setZoomVisible(true);
+  };
+
+  // Only trigger zoom if the tap has minimal movement.
+  const onSingleTapEvent = (event: any) => {
+    if (event.nativeEvent.state === State.END) {
+      handleZoom();
+    }
   };
 
   const renderItem = ({ item }: { item: string }) => (
@@ -83,16 +93,18 @@ const SecondaryCardComponent: React.FC<SecondaryCardProps> = ({ watch }) => {
     }, 100);
   };
 
-  // Zoom Modal with updated overlays for SKU/Reference and MSRP/Price
+  // Zoom Modal that shows the full-screen image carousel.
   const renderZoomModal = () => (
     <Modal visible={zoomVisible} transparent animationType="fade">
       <View style={modalStyles.modalContainer}>
-        {/* Tapping the background closes the modal */}
-        <TouchableOpacity
-          style={modalStyles.modalBackground}
-          onPress={() => setZoomVisible(false)}
-          activeOpacity={1}
-        />
+        {/* Wrap the modal background in a TapGestureHandler to dismiss */}
+        <TapGestureHandler
+          onHandlerStateChange={(e) => {
+            if (e.nativeEvent.state === State.END) setZoomVisible(false);
+          }}
+        >
+          <View style={modalStyles.modalBackground} />
+        </TapGestureHandler>
         <View style={modalStyles.modalContent}>
           <Animated.FlatList
             horizontal
@@ -127,20 +139,22 @@ const SecondaryCardComponent: React.FC<SecondaryCardProps> = ({ watch }) => {
             })}
           />
 
-          {/* Close Button (Top Left, brought down a bit) */}
-          <TouchableOpacity
-            style={modalStyles.closeButton}
-            onPress={() => setZoomVisible(false)}
-          >
-            <Ionicons name="close" size={24} color="#fff" />
-          </TouchableOpacity>
+          {/* Close Button (Top Left) */}
+          <View style={modalStyles.closeButton}>
+            <Ionicons
+              name="close"
+              size={24}
+              color="#fff"
+              onPress={() => setZoomVisible(false)}
+            />
+          </View>
 
           {/* Favorite Button (Top Right) */}
           <View style={modalStyles.favoriteButton}>
             <FavoriteButton />
           </View>
 
-          {/* Pagination (Top Right, below FavoriteButton) */}
+          {/* Pagination in Modal (Top Right) */}
           {showPagination && (
             <View style={modalStyles.paginationContainer}>
               <Pagination
@@ -151,27 +165,27 @@ const SecondaryCardComponent: React.FC<SecondaryCardProps> = ({ watch }) => {
             </View>
           )}
 
-          {/* Bottom Left: Display Reference and SKU with white text and navy blue outline */}
+          {/* Bottom Left: Reference & SKU info */}
           <View style={modalStyles.bottomLeftContainer}>
-            {watch.referenceNumber && (
+            {watch.referenceNumber ? (
               <Text style={modalStyles.bottomLeftText}>
                 Ref. {watch.referenceNumber}
               </Text>
-            )}
-            {(watch.sku || watch.skuNumber) && (
+            ) : null}
+            {watch.sku || watch.skuNumber ? (
               <Text style={modalStyles.bottomLeftText}>
                 SKU: {watch.sku || watch.skuNumber}
               </Text>
-            )}
+            ) : null}
           </View>
 
-          {/* Bottom Right: Display MSRP and Price with white text and navy blue outline */}
+          {/* Bottom Right: MSRP & Price */}
           <View style={modalStyles.bottomRightContainer}>
-            {watch.msrp && (
+            {watch.msrp ? (
               <Text style={modalStyles.bottomRightMsrp}>
                 MSRP: ${watch.msrp.toLocaleString()}
               </Text>
-            )}
+            ) : null}
             <Text style={modalStyles.bottomRightText}>
               ${typeof watch.price === "number" ? watch.price.toLocaleString() : "N/A"}
             </Text>
@@ -182,9 +196,10 @@ const SecondaryCardComponent: React.FC<SecondaryCardProps> = ({ watch }) => {
   );
 
   return (
-    <>
+    // Wrap the entire component in GestureHandlerRootView so that all gesture handlers work properly.
+    <GestureHandlerRootView style={{ flex: 1 }}>
       <View style={styles.container}>
-        {/* Badges */}
+        {/* Badges (New Arrival, On Hold) */}
         {(watch.newArrival || watch.hold) && (
           <View style={styles.badgesContainer}>
             {watch.newArrival && <NewArrivalBadge />}
@@ -196,61 +211,62 @@ const SecondaryCardComponent: React.FC<SecondaryCardProps> = ({ watch }) => {
           </View>
         )}
 
-        {/* Image Carousel with Zoom Trigger */}
-        <TouchableOpacity onPress={handleZoom} activeOpacity={0.9}>
-          <Animated.FlatList
-            ref={flatListRef}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            onScroll={Animated.event(
-              [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-              { useNativeDriver: false }
-            )}
-            scrollEventThrottle={16}
-            decelerationRate="fast"
-            snapToInterval={SCREEN_WIDTH}
-            snapToAlignment="center"
-            data={images}
-            keyExtractor={(_, index) => `${watch.id}-detail-${index}`}
-            renderItem={renderItem}
-            initialNumToRender={2}
-            maxToRenderPerBatch={2}
-            getItemLayout={(_, index) => ({
-              length: SCREEN_WIDTH,
-              offset: SCREEN_WIDTH * index,
-              index,
-            })}
-            onScrollToIndexFailed={handleScrollToIndexFailed}
-          />
-        </TouchableOpacity>
-
-        {/* Box & Papers Indicators */}
-        {(watch.box || watch.papers) && (
-          <View style={styles.accessoriesContainer}>
-            {watch.box && (
-              <View style={styles.accessoryIcon}>
-                <Ionicons name="cube-outline" size={18} color="#FFFFFF" />
+        {/* Use TapGestureHandler to distinguish between a tap and swipe on the image carousel */}
+        <TapGestureHandler
+          onHandlerStateChange={onSingleTapEvent}
+          maxDeltaX={10}
+          maxDeltaY={10}
+        >
+          <Animated.View style={styles.card}>
+            <View style={styles.imageContainer}>
+              <Animated.FlatList
+                ref={flatListRef}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                onScroll={Animated.event(
+                  [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+                  { useNativeDriver: false }
+                )}
+                scrollEventThrottle={16}
+                decelerationRate="fast"
+                snapToInterval={SCREEN_WIDTH}
+                snapToAlignment="center"
+                data={images}
+                keyExtractor={(_, index) => `${watch.id}-detail-${index}`}
+                renderItem={renderItem}
+                initialNumToRender={2}
+                maxToRenderPerBatch={2}
+                getItemLayout={(_, index) => ({
+                  length: SCREEN_WIDTH,
+                  offset: SCREEN_WIDTH * index,
+                  index,
+                })}
+                onScrollToIndexFailed={handleScrollToIndexFailed}
+              />
+              <View style={[RNStyleSheet.absoluteFill, { pointerEvents: "box-none" }]}>
+                {showPagination && (
+                  <View style={styles.paginationContainer}>
+                    <Pagination
+                      scrollX={scrollX}
+                      cardWidth={SCREEN_WIDTH}
+                      totalItems={images.length}
+                    />
+                  </View>
+                )}
               </View>
-            )}
-            {watch.papers && (
-              <View style={styles.accessoryIcon}>
-                <Ionicons name="document-text-outline" size={18} color="#FFFFFF" />
-              </View>
-            )}
-          </View>
-        )}
+            </View>
+          </Animated.View>
+        </TapGestureHandler>
       </View>
       {renderZoomModal()}
-    </>
+    </GestureHandlerRootView>
   );
 };
 
 export const SecondaryCard = memo(SecondaryCardComponent);
 
-/* -------------------- Styles -------------------- */
-
-const styles = StyleSheet.create({
+const styles = RNStyleSheet.create({
   container: {
     width: SCREEN_WIDTH,
     height: SCREEN_WIDTH * 0.9,
@@ -259,6 +275,9 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     marginBottom: 16,
     position: "relative",
+  },
+  card: {
+    flex: 1,
   },
   imageContainer: {
     width: SCREEN_WIDTH,
@@ -277,25 +296,15 @@ const styles = StyleSheet.create({
   stackedBadge: {
     marginTop: 26,
   },
-  accessoriesContainer: {
+  paginationContainer: {
     position: "absolute",
-    bottom: 16,
-    left: 16,
-    flexDirection: "row",
-    zIndex: 10,
-  },
-  accessoryIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "rgba(0, 45, 78, 0.8)",
-    marginRight: 8,
-    alignItems: "center",
-    justifyContent: "center",
+    bottom: 12,
+    right: 12,
+    zIndex: 20,
   },
 });
 
-const modalStyles = StyleSheet.create({
+const modalStyles = RNStyleSheet.create({
   modalContainer: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.95)",
@@ -321,31 +330,27 @@ const modalStyles = StyleSheet.create({
     width: SCREEN_WIDTH,
     height: SCREEN_WIDTH * 0.9,
   },
-  // Close Button (brought down a bit)
   closeButton: {
     position: "absolute",
-    top: 50, // increased from 40
+    top: 40,
     left: 16,
     backgroundColor: "rgba(0,0,0,0.6)",
     borderRadius: 20,
     padding: 8,
     zIndex: 20,
   },
-  // Favorite Button (Top Right)
   favoriteButton: {
     position: "absolute",
     top: 40,
     right: 16,
     zIndex: 20,
   },
-  // Pagination (Top Right, below FavoriteButton)
   paginationContainer: {
     position: "absolute",
     top: 90,
     right: 16,
     zIndex: 20,
   },
-  // Bottom Left: Display Reference and SKU with white text and navy blue outline
   bottomLeftContainer: {
     position: "absolute",
     bottom: 12,
@@ -358,11 +363,7 @@ const modalStyles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "500",
     marginBottom: 4,
-    textShadowColor: "#002d4e",
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
   },
-  // Bottom Right: MSRP & Price with white text and navy blue outline
   bottomRightContainer: {
     position: "absolute",
     bottom: 12,
@@ -377,16 +378,10 @@ const modalStyles = StyleSheet.create({
     textDecorationLine: "line-through",
     opacity: 0.8,
     marginBottom: 4,
-    textShadowColor: "#002d4e",
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
   },
   bottomRightText: {
     color: "#fff",
     fontSize: 18,
     fontWeight: "600",
-    textShadowColor: "#002d4e",
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
   },
 });

@@ -10,6 +10,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { FixedHeader } from '../components/FixedHeader';
 import { Link } from 'expo-router';
+import Colors from '../../constants/Colors';
 
 export default function MoreScreen() {
   // Function to handle Instagram linking
@@ -161,7 +162,7 @@ export default function MoreScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: Colors.offWhite,
   },
   section: {
     marginTop: 20,
@@ -170,7 +171,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#002d4e',
+    color: Colors.primaryBlue,
     marginBottom: 12,
     paddingLeft: 8,
   },
@@ -181,7 +182,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 4,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: Colors.borderLight,
   },
   leftContainer: {
     flexDirection: 'row',

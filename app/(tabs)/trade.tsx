@@ -24,6 +24,7 @@ import { collection, addDoc } from 'firebase/firestore';
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { db } from '../../firebaseConfig';
 import { Watch } from '../types/Watch';
+import Colors from '../../constants/Colors';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -259,7 +260,7 @@ export default function TradeScreen() {
 
   return (
     <View style={styles.mainContainer}>
-      <StatusBar backgroundColor="#FFFFFF" barStyle="dark-content" />
+      <StatusBar backgroundColor={Colors.headerBg} barStyle="dark-content" />
       <FixedHeader 
         title={headerText}
         showBackButton={false}
@@ -337,7 +338,7 @@ export default function TradeScreen() {
           {watchData && isFocused && (
             <BlurView intensity={10} tint="light" style={styles.watchCard}>
               <View style={styles.watchIconContainer}>
-                <Ionicons name="watch-outline" size={24} color="#002d4e" />
+                <Ionicons name="watch-outline" size={24} color={Colors.primaryBlue} />
               </View>
               <View style={styles.watchInfoContent}>
                 <Text style={styles.watchBrand}>{watchData.brand}</Text>
@@ -376,11 +377,11 @@ export default function TradeScreen() {
                 ) : (
                   <View style={styles.photoButtonsContainer}>
                     <TouchableOpacity style={styles.photoButton} onPress={takePhoto}>
-                      <Ionicons name="camera-outline" size={28} color="#002d4e" />
+                      <Ionicons name="camera-outline" size={28} color={Colors.primaryBlue} />
                       <Text style={styles.photoButtonText}>Take Photo</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.photoButton} onPress={pickImage}>
-                      <Ionicons name="image-outline" size={28} color="#002d4e" />
+                      <Ionicons name="image-outline" size={28} color={Colors.primaryBlue} />
                       <Text style={styles.photoButtonText}>Upload Photo</Text>
                     </TouchableOpacity>
                   </View>
@@ -446,7 +447,7 @@ export default function TradeScreen() {
                 activeOpacity={0.85}
               >
                 <View style={styles.backButtonContent}>
-                  <Ionicons name="arrow-back" size={18} color="#002d4e" />
+                  <Ionicons name="arrow-back" size={18} color={Colors.primaryBlue} />
                   <Text style={styles.backButtonText}>Back</Text>
                 </View>
               </TouchableOpacity>
@@ -486,7 +487,7 @@ export default function TradeScreen() {
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: Colors.offWhite,
   },
   keyboardAvoid: {
     flex: 1,
@@ -523,7 +524,7 @@ const styles = StyleSheet.create({
   stepLineProgress: {
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#002d4e',
+    backgroundColor: Colors.primaryBlue,
   },
   stepsRow: {
     flexDirection: 'row',
@@ -538,7 +539,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.offWhite,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -553,10 +554,10 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#002d4e',
+    backgroundColor: Colors.primaryBlue,
   },
   inactiveStep: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.offWhite,
     borderWidth: 1,
     borderColor: '#E0E0E0',
     width: 30,
@@ -578,7 +579,7 @@ const styles = StyleSheet.create({
   // Toggle Buttons
   toggleContainer: {
     flexDirection: 'row',
-    backgroundColor: '#F5F7FA',
+    backgroundColor: Colors.buttonBg,
     borderRadius: 12,
     marginBottom: 28,
     width: '100%',
@@ -591,7 +592,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   toggleButtonActive: {
-    backgroundColor: '#002d4e',
+    backgroundColor: Colors.primaryBlue,
   },
   toggleButtonDisabled: {
     opacity: 0.3,
@@ -599,7 +600,7 @@ const styles = StyleSheet.create({
   toggleButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#002d4e',
+    color: Colors.primaryBlue,
   },
   toggleButtonTextActive: {
     color: '#FFFFFF',
@@ -617,6 +618,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: 'rgba(0, 45, 78, 0.08)',
+    backgroundColor: Colors.offWhite,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -638,7 +640,7 @@ const styles = StyleSheet.create({
   watchBrand: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#002d4e',
+    color: Colors.primaryBlue,
     marginBottom: 4,
   },
   watchModel: {
@@ -649,13 +651,13 @@ const styles = StyleSheet.create({
   watchPrice: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#002d4e',
+    color: Colors.primaryBlue,
   },
   // Form Elements
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#002d4e',
+    color: Colors.primaryBlue,
     marginBottom: 20,
   },
   inputGroup: {
@@ -665,7 +667,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#002d4e',
+    color: Colors.primaryBlue,
     marginBottom: 8,
   },
   input: {
@@ -697,7 +699,7 @@ const styles = StyleSheet.create({
   },
   photoButton: {
     flex: 0.48,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: Colors.buttonBg,
     borderRadius: 12,
     paddingVertical: 24,
     alignItems: 'center',
@@ -707,7 +709,7 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
   },
   photoButtonText: {
-    color: '#002d4e',
+    color: Colors.primaryBlue,
     marginTop: 10,
     fontSize: 14,
     fontWeight: '500',
@@ -750,7 +752,7 @@ const styles = StyleSheet.create({
   primaryButton: {
     borderRadius: 12,
     overflow: 'hidden',
-    backgroundColor: '#002d4e',
+    backgroundColor: Colors.primaryBlue,
   },
   primaryButtonContent: {
     paddingVertical: 16,
@@ -776,7 +778,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     flex: 1,
     marginRight: 6,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: Colors.buttonBg,
     borderWidth: 1,
     borderColor: '#e0e0e0',
   },
@@ -788,7 +790,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   backButtonText: {
-    color: '#002d4e',
+    color: Colors.primaryBlue,
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,

@@ -13,6 +13,7 @@ import { useRouter } from 'expo-router';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../../firebaseConfig';
 import { FixedHeader } from '../components/FixedHeader';
+import Colors from '../../constants/Colors';
 
 interface Brand {
   id: string;
@@ -195,7 +196,7 @@ export default function BrandsScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#002d4e"
+            tintColor={Colors.primaryBlue}
           />
         }
       />
@@ -206,7 +207,7 @@ export default function BrandsScreen() {
 const styles = StyleSheet.create({
   container: { 
     flex: 1, 
-    backgroundColor: '#ffffff' 
+    backgroundColor: Colors.offWhite 
   },
   listContent: { 
     padding: 10 
@@ -215,7 +216,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginVertical: 4,
     borderRadius: 8,
-    backgroundColor: '#fff',
+    backgroundColor: Colors.offWhite,
     width: '100%',
     maxWidth: 400,
     alignSelf: 'center',
@@ -226,9 +227,11 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FCFCFC', // Even whiter, but still maintaining a slight off-white tint
     borderRadius: 8,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
   },
   cardContent: {
     flexDirection: 'row',
@@ -241,7 +244,7 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     flex: 1,
-    backgroundColor: '#F6F7F8',
+    backgroundColor: '#FCFCFC', // Match card background
     overflow: 'hidden',
   },
   brandImage: {
@@ -251,7 +254,7 @@ const styles = StyleSheet.create({
   brandName: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#002d4e',
+    color: Colors.primaryBlue,
     letterSpacing: 0.2,
   },
   modelsCount: {

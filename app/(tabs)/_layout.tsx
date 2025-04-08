@@ -4,6 +4,7 @@ import { Tabs, usePathname } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SortProvider } from '../context/SortContext';
 import { useLoading } from '../context/LoadingContext';
+import Colors from '../../constants/Colors';
 
 type TabBarIconProps = {
   name: React.ComponentProps<typeof Ionicons>['name'];
@@ -52,14 +53,14 @@ export default function TabLayout() {
         screenOptions={{
           headerShown: false,
           tabBarStyle: {
-            backgroundColor: '#ffffff',
+            backgroundColor: Colors.tabBarBg,
             borderTopWidth: 1,
-            borderTopColor: '#cccccc',
+            borderTopColor: Colors.borderLight,
             height: 90,
             paddingBottom: 20,
             paddingTop: 10,
           },
-          tabBarActiveTintColor: '#002d4e',
+          tabBarActiveTintColor: Colors.primaryBlue,
           tabBarInactiveTintColor: '#7a7a7a',
           tabBarLabelStyle: {
             fontSize: 10,

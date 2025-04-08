@@ -8,15 +8,16 @@ import { LoadingProvider } from './context/LoadingContext';
 import { LoadingOverlay } from './components/LoadingOverlay';
 import { useLoading } from './context/LoadingContext';
 import { StripeProvider } from '@stripe/stripe-react-native';
+import Colors from '../constants/Colors';
 
 function MainLayout() {
   const { isLoading } = useLoading();
   
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: Colors.offWhite }}>
       <FavoritesProvider>
         <SortProvider>
-          <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+          <StatusBar barStyle="dark-content" backgroundColor={Colors.headerBg} />
           <Stack
             screenOptions={{
               headerShown: false,
@@ -25,6 +26,7 @@ function MainLayout() {
               gestureDirection: 'horizontal',
               presentation: 'card',
               animationDuration: 200,
+              contentStyle: { backgroundColor: Colors.offWhite }
             }}
           >
             {/* Main Tab Navigation */}

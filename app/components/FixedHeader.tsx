@@ -5,12 +5,14 @@ import {
   SafeAreaView,
   TextInput,
   TouchableOpacity,
-  Platform
+  Platform,
+  Image
 } from 'react-native';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { useRouter, usePathname } from 'expo-router';
 import { Watch } from '../types/Watch';
 import ShareButton from './ShareButton';
+import Colors from '../../constants/Colors';
 
 interface FixedHeaderProps {
   title?: string;
@@ -108,6 +110,15 @@ function FixedHeaderComponent({
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
+        {/* Logo in the center */}
+        <View style={styles.logoContainer}>
+          <Image 
+            source={require('../../assets/images/head_logo.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
+        </View>
+
         {/* Left section with all buttons */}
         <View style={styles.leftSection}>
           {showBackButton && (
@@ -117,7 +128,7 @@ function FixedHeaderComponent({
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               activeOpacity={0.7}
             >
-              <Feather name="arrow-left" size={24} color="#002d4e" />
+              <Feather name="arrow-left" size={24} color={Colors.primaryBlue} />
             </TouchableOpacity>
           )}
           
@@ -129,7 +140,7 @@ function FixedHeaderComponent({
               accessibilityLabel="Favorites"
               activeOpacity={0.7}
             >
-              <Ionicons name="bookmark-outline" size={22} color="#002d4e" />
+              <Ionicons name="bookmark-outline" size={22} color={Colors.primaryBlue} />
             </TouchableOpacity>
           )}
 
@@ -144,7 +155,7 @@ function FixedHeaderComponent({
               accessibilityHint="Opens filter options dropdown"
               activeOpacity={0.7}
             >
-              <Ionicons name="filter-outline" size={22} color="#002d4e" />
+              <Ionicons name="filter-outline" size={22} color={Colors.primaryBlue} />
             </TouchableOpacity>
           )}
         </View>
@@ -154,7 +165,7 @@ function FixedHeaderComponent({
           {showSearch ? (
             <View style={styles.searchContainer}>
               <View style={styles.searchIconWrapper}>
-                <Ionicons name="search" size={20} color="#002d4e" />
+                <Ionicons name="search" size={20} color={Colors.primaryBlue} />
               </View>
               <TextInput
                 style={styles.searchInput}
@@ -174,7 +185,7 @@ function FixedHeaderComponent({
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                   activeOpacity={0.7}
                 >
-                  <Ionicons name="close" size={20} color="#002d4e" />
+                  <Ionicons name="close" size={20} color={Colors.primaryBlue} />
                 </TouchableOpacity>
               ) : null}
             </View>
@@ -185,7 +196,7 @@ function FixedHeaderComponent({
               title={`Check out this ${watch.brand} ${watch.model}`}
               message={`I found this amazing ${watch.brand} ${watch.model} on Watch Salon`}
               size={22}
-              color="#002d4e"
+              color={Colors.primaryBlue}
               style={styles.iconButton}
             />
           )}
@@ -200,9 +211,9 @@ export const FixedHeader = memo(FixedHeaderComponent);
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: '#ffffff',
+    backgroundColor: Colors.headerBg,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: Colors.borderLight,
     zIndex: 10,
     width: '100%',
     position: 'relative',
@@ -213,20 +224,38 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 10,
-    backgroundColor: '#ffffff',
-    height: 66,
+    backgroundColor: Colors.headerBg,
+    height: 80, // Increased height to accommodate larger logo
+    position: 'relative',
+  },
+  logoContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1,
+    pointerEvents: 'none',
+  },
+  logoImage: {
+    height: 60, // Increased height for bigger logo
+    width: 240, // Increased width for bigger logo
   },
   leftSection: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-start',
     marginRight: 8,
+    zIndex: 2,
   },
   rightSection: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end',
+    zIndex: 2,
   },
   iconButton: {
     padding: 8,
@@ -236,18 +265,18 @@ const styles = StyleSheet.create({
     width: 42,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#f7f7f7',
+    backgroundColor: Colors.buttonBg,
+    borderWidth: 1.5,
+    borderColor: '#c0c0c0', // Added stronger border for contrast
     ...Platform.select({
       ios: {
-        shadowColor: '#002d4e',
+        shadowColor: Colors.primaryBlue,
         shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
+        shadowOpacity: 0.15,
         shadowRadius: 2,
       },
       android: {
-        elevation: 0,
-        borderWidth: 1,
-        borderColor: '#eaeaea',
+        elevation: 2,
       },
     }),
   },
@@ -255,21 +284,21 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f7f7f7',
+    backgroundColor: Colors.buttonBg,
     borderRadius: 8,
     height: 42,
     marginRight: 6,
+    borderWidth: 1.5,
+    borderColor: '#c0c0c0', // Added stronger border for contrast
     ...Platform.select({
       ios: {
-        shadowColor: '#002d4e',
+        shadowColor: Colors.primaryBlue,
         shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
+        shadowOpacity: 0.15,
         shadowRadius: 2,
       },
       android: {
-        elevation: 0,
-        borderWidth: 1,
-        borderColor: '#eaeaea',
+        elevation: 2,
       },
     }),
   },

@@ -1,8 +1,6 @@
 // app/watch/[id].tsx
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
-  SafeAreaView,
-  ScrollView,
   View,
   Text,
   StyleSheet,
@@ -10,6 +8,8 @@ import {
   ActivityIndicator,
   Platform,
   Animated,
+  StatusBar,
+  ScrollView,
 } from "react-native";
 import { BlurView } from "expo-blur";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -21,6 +21,7 @@ import { StockBadge } from "../components/StockBadge";
 import { LikeList } from "../components/LikeList";
 import { useWatches } from "../hooks/useWatches";
 import StripeCheckout from "../components/StripeCheckout";
+import Colors from '../../constants/Colors';
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -163,7 +164,10 @@ export default function DetailScreen() {
   // Use a full-page loading approach to avoid content jumping
   if (loading || !watches || watches.length === 0 || !watch || !contentReady) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={[styles.container, { backgroundColor: Colors.headerBg }]}>
+        {/* IMPORTANT: Custom status bar background */}
+        <View style={styles.statusBarFill} />
+        
         <FixedHeader showBackButton title="" />
         <View style={styles.loadingContainer}>
           {error ? (
@@ -175,12 +179,15 @@ export default function DetailScreen() {
             <ActivityIndicator size="large" color="#002d4e" />
           )}
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={[styles.container, { backgroundColor: Colors.headerBg }]}>
+      {/* IMPORTANT: Custom status bar background */}
+      <View style={styles.statusBarFill} />
+      
       <FixedHeader showBackButton watch={watch} />
 
       <Animated.View style={{
@@ -290,18 +297,28 @@ export default function DetailScreen() {
           <StripeCheckout
             watch={watch}
             onSuccess={handlePurchaseSuccess}
-            onCancel={() => {}}
+            onCancel={() => { }}
           />
         )}
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff"
+    backgroundColor: Colors.headerBg,
+  },
+  // NEW: Custom status bar fill view
+  statusBarFill: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: Platform.OS === 'ios' ? 50 : StatusBar.currentHeight,
+    backgroundColor: Colors.headerBg,
+    zIndex: 10
   },
   scrollContent: {
     paddingBottom: 140,
@@ -343,14 +360,14 @@ const styles = StyleSheet.create({
   },
   brand: {
     fontSize: 30,
-    fontWeight: "700",
+    fontWeight: "500", // Changed from "700" to "500" to make it lighter
     color: "#002d4e",
     letterSpacing: -0.5,
     width: '100%',
   },
   brandSmaller: {
     fontSize: 24, // Smaller font size specifically for Vacheron Constantin
-    fontWeight: "700",
+    fontWeight: "500", // Changed from "700" to "500" to make it lighter
     color: "#002d4e",
     letterSpacing: -0.5,
     width: '100%',
@@ -362,7 +379,6 @@ const styles = StyleSheet.create({
     zIndex: 1,
     alignItems: 'flex-end',
   },
-
   model: {
     fontSize: 20,
     fontWeight: "400",
@@ -487,5 +503,4 @@ const styles = StyleSheet.create({
   stripeButtonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
   soldButton: { backgroundColor: "#888" },
   onHoldButton: { backgroundColor: "#002d4e" },
-},
-);
+});
