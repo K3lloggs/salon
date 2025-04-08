@@ -324,14 +324,14 @@ const styles = StyleSheet.create({
   },
   brand: {
     fontSize: 20,
-    fontWeight: "600",
+    fontWeight: "500",
     color: "#002d4e",
     letterSpacing: 0.3,
     flex: 1,
     paddingRight: 8,
   },
   model: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "500",
     color: "#002d4e",
     letterSpacing: 0.4,

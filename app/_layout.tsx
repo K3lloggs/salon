@@ -8,16 +8,64 @@ import { LoadingProvider } from './context/LoadingContext';
 import { LoadingOverlay } from './components/LoadingOverlay';
 import { useLoading } from './context/LoadingContext';
 import { StripeProvider } from '@stripe/stripe-react-native';
-import Colors from '../constants/Colors';
+import * as Linking from 'expo-linking';
+import { useEffect } from 'react';
+import { useRouter } from 'expo-router';
 
 function MainLayout() {
   const { isLoading } = useLoading();
+  const router = useRouter();
+  
+  // Handle deep links
+  useEffect(() => {
+    // Function to handle deep links - extracts the watch ID from URLs like:
+    // watchsalon://watch/123 or exp://192.168.x.x:port/--/watch/123
+    const handleDeepLink = (event) => {
+      const url = event.url;
+      console.log("Deep link received:", url);
+      
+      // Check if this is a watch detail link
+      if (url.includes('/watch/')) {
+        // Extract the watch ID from the URL
+        const regex = /\/watch\/([^\/\?]+)/;
+        const match = url.match(regex);
+        
+        if (match && match[1]) {
+          const watchId = match[1];
+          console.log("Navigating to watch ID:", watchId);
+          
+          // Navigate to the watch screen with the extracted ID
+          router.push(`/watch/${watchId}`);
+        }
+      }
+    };
+    
+    // Add event listener for deep links when app is already running
+    const subscription = Linking.addEventListener('url', handleDeepLink);
+    
+    // Check for initial URL that may have launched the app
+    const getInitialUrl = async () => {
+      const initialUrl = await Linking.getInitialURL();
+      console.log("Initial URL:", initialUrl);
+      
+      if (initialUrl) {
+        handleDeepLink({ url: initialUrl });
+      }
+    };
+    
+    getInitialUrl();
+    
+    // Cleanup subscription on unmount
+    return () => {
+      subscription.remove();
+    };
+  }, [router]);
   
   return (
-    <View style={{ flex: 1, backgroundColor: Colors.offWhite }}>
+    <View style={{ flex: 1 }}>
       <FavoritesProvider>
         <SortProvider>
-          <StatusBar barStyle="dark-content" backgroundColor={Colors.headerBg} />
+          <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
           <Stack
             screenOptions={{
               headerShown: false,
@@ -26,7 +74,6 @@ function MainLayout() {
               gestureDirection: 'horizontal',
               presentation: 'card',
               animationDuration: 200,
-              contentStyle: { backgroundColor: Colors.offWhite }
             }}
           >
             {/* Main Tab Navigation */}

@@ -7,7 +7,7 @@ export default {
     scheme: 'watchsalon', // <-- Required linking scheme for production builds
     icon: "./assets/images/shreve_circle.png",
     orientation: "portrait",
-    version: "1.1.2",  // Version number
+    version: "1.1.3",  // Version number
     extra: {
       FIREBASE_API_KEY: process.env.FIREBASE_API_KEY,
       FIREBASE_AUTH_DOMAIN: process.env.FIREBASE_AUTH_DOMAIN,
@@ -30,9 +30,37 @@ export default {
         LSApplicationQueriesSchemes: [
           "instagram",
           "fb",
-          "youtube"
+          "youtube",
+          "watchsalon" // Added for handling deep links
+        ],
+        // Added for URL scheme handling
+        CFBundleURLTypes: [
+          {
+            CFBundleURLSchemes: [
+              "watchsalon"
+            ]
+          }
         ]
       }
+    },
+    android: {
+      package: "com.itsabike.salon",
+      // Added for Android deep linking
+      intentFilters: [
+        {
+          action: "VIEW",
+          autoVerify: true,
+          data: [
+            {
+              scheme: "watchsalon"
+            }
+          ],
+          category: [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
     },
     plugins: [
       'expo-router',

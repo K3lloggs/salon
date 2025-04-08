@@ -193,8 +193,9 @@ function FixedHeaderComponent({
           
           {watch && (
             <ShareButton
-              title={`Check out this ${watch.brand} ${watch.model}`}
-              message={`I found this amazing ${watch.brand} ${watch.model} on Watch Salon`}
+              watchId={watch.id}
+              watchBrand={watch.brand}
+              watchModel={watch.model}
               size={22}
               color={Colors.primaryBlue}
               style={styles.iconButton}
