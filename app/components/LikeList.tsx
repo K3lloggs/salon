@@ -55,10 +55,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 8,
     paddingHorizontal: 12,
-    
+    marginBottom: 6,
   },
   icon: {
-    
     marginRight: 6,
     opacity: 0.9,
     color: '#002d4e',

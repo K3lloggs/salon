@@ -20,6 +20,10 @@ interface Brand {
   name: string;
   models: number;
   image?: string;
+  // Add premium image from most expensive watch of this brand
+  premiumImage?: string;
+  // Track max price
+  maxPrice?: number;
 }
 
 interface BrandCardProps {
@@ -52,9 +56,10 @@ const BrandCard: React.FC<BrandCardProps> = ({ brand }) => {
             </Text>
           </View>
           <View style={styles.imageContainer}>
-            {brand.image && (
+            {/* Use the premium image (from most expensive watch) if available */}
+            {(brand.premiumImage || brand.image) && (
               <Image
-                source={{ uri: brand.image }}
+                source={{ uri: brand.premiumImage || brand.image }}
                 style={styles.brandImage}
                 resizeMode="cover"
               />
@@ -81,35 +86,51 @@ export default function BrandsScreen() {
       const watchesCollection = collection(db, 'Watches');
       const snapshot = await getDocs(watchesCollection);
 
-      const rawData = snapshot.docs.map((doc) => {
+      // Create a map to store the most expensive watch per brand
+      const brandMap: { [key: string]: Brand } = {};
+      
+      snapshot.docs.forEach((doc) => {
         const data = doc.data();
+        const brandName = data.brand || '';
+        const price = typeof data.price === 'number' ? data.price : 0;
         const images = Array.isArray(data.image) ? data.image : [data.image];
-        return {
-          brandName: data.brand || '',
-          firstImage: images && images[0] ? images[0] : null,
-        };
-      });
-
-      const brandGroups: Brand[] = [];
-      rawData.forEach((item) => {
-        const existingBrand = brandGroups.find(
-          (b) => b.name.toLowerCase() === item.brandName.toLowerCase()
-        );
-        if (existingBrand) {
-          existingBrand.models += 1;
-        } else {
-          brandGroups.push({
-            id: item.brandName,
-            name: item.brandName,
+        
+        // Get first image for default display
+        const firstImage = images && images[0] ? images[0] : null;
+        
+        // Normalize the brand name for use as a key
+        const brandKey = brandName.toLowerCase();
+        
+        if (!brandMap[brandKey]) {
+          // First watch of this brand - initialize
+          brandMap[brandKey] = {
+            id: brandName,
+            name: brandName,
             models: 1,
-            image: item.firstImage || undefined,
-          });
+            image: firstImage,
+            premiumImage: firstImage, // Default premium image
+            maxPrice: price
+          };
+        } else {
+          // Add to model count
+          brandMap[brandKey].models += 1;
+          
+          // Check if this watch is more expensive than current max
+          if (price > (brandMap[brandKey].maxPrice || 0)) {
+            // Update max price and premium image
+            brandMap[brandKey].maxPrice = price;
+            // Use first image from most expensive watch
+            brandMap[brandKey].premiumImage = firstImage;
+          }
         }
       });
 
+      // Convert the object to an array for sorting and display
+      const brandsArray = Object.values(brandMap);
+
       // Custom sorting function that puts priority brands first,
       // then sorts the rest alphabetically
-      const sortedBrands = brandGroups.sort((a, b) => {
+      const sortedBrands = brandsArray.sort((a, b) => {
         // Check if either brand is in the priority list
         const aIndex = priorityBrands.findIndex(
           brand => brand.toLowerCase() === a.name.toLowerCase()
@@ -141,7 +162,6 @@ export default function BrandsScreen() {
       setFilteredBrands(sortedBrands);
     } catch (error) {
       console.error('Error fetching brands:', error);
-
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -262,6 +282,7 @@ const styles = StyleSheet.create({
     color: '#666',
     letterSpacing: 0.2,
   },
+
   centered: {
     justifyContent: 'center',
     alignItems: 'center',

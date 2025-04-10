@@ -1,4 +1,4 @@
-import React, { useRef, useState, memo } from "react";
+import React, { useRef, useState, memo, useMemo } from "react";
 import {
   View,
   Image,
@@ -84,8 +84,8 @@ const getStyles = (screenWidth: number) =>
     },
     likeCounterWrapper: {
       position: "absolute",
-      top: 16,
-      right: 16,
+      top: 8,  // Changed from 16 to 8 to align with the stock badge
+      right: 0,
       zIndex: 30,
     },
   });
@@ -187,12 +187,20 @@ const SecondaryCardComponent: React.FC<SecondaryCardProps> = ({ watch }) => {
   const modalScrollX = useRef(new Animated.Value(0)).current;
 
   // Normalize images from the watch object.
-  const images =
-    Array.isArray(watch.image) && watch.image.length > 0
-      ? watch.image
-      : typeof watch.image === "string" && watch.image
-      ? [watch.image]
-      : [];
+  const images = useMemo(() => {
+    if (Array.isArray(watch.image) && watch.image.length > 1) {
+      // Start from the second image (index 1) instead of the first
+      return watch.image.slice(1);
+    } else if (Array.isArray(watch.image) && watch.image.length === 1) {
+      // If there's only one image, use that
+      return watch.image;
+    } else if (typeof watch.image === "string" && watch.image) {
+      // Handle string case
+      return [watch.image];
+    } else {
+      return []; // No image fallback
+    }
+  }, [watch.image]);
 
   const showPagination = images.length > 1;
 

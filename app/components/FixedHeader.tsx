@@ -110,15 +110,6 @@ function FixedHeaderComponent({
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
-        {/* Logo in the center */}
-        <View style={styles.logoContainer}>
-          <Image 
-            source={require('../../assets/images/head_logo.png')}
-            style={styles.logoImage}
-            resizeMode="contain"
-          />
-        </View>
-
         {/* Left section with all buttons */}
         <View style={styles.leftSection}>
           {showBackButton && (

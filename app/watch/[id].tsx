@@ -360,7 +360,7 @@ const styles = StyleSheet.create({
   },
   brand: {
     fontSize: 30,
-    fontWeight: "500", // Changed from "700" to "500" to make it lighter
+    fontWeight: "600", // Changed from "700" to "500" to make it lighter
     color: "#002d4e",
     letterSpacing: 0.2,
     width: '100%',
