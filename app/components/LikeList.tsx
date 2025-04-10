@@ -2,6 +2,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ViewStyle, StyleProp } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import Colors from '../../constants/Colors'; // Import your theme colors
 
 interface LikeListProps {
   initialLikes: number;
@@ -36,7 +37,9 @@ export const LikeList: React.FC<LikeListProps> = ({
         />
         <Text style={styles.likeText}>
           {formatCount(initialLikes)}
-          <Text style={styles.label}> {initialLikes === 1 ? 'Like' : 'Likes'}</Text>
+          <Text style={styles.label}>
+            {initialLikes === 1 ? ' Like' : ' Likes'}
+          </Text>
         </Text>
       </View>
     </View>
@@ -45,17 +48,18 @@ export const LikeList: React.FC<LikeListProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#F5F5F7',
+    // Use a color from your theme that offers a light greyish dark grey appearance.
+    // If you update your Colors file with, for example, likeListBg: '#A9A9A9',
+    // then it will match your theme consistently.
+    backgroundColor: '#A9A9A9',
     borderRadius: 8,
     alignSelf: 'flex-start',
-    // Removed absolute positioning so it aligns inline with siblings
   },
   contentWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 8,
     paddingHorizontal: 12,
-    marginBottom: 6,
   },
   icon: {
     marginRight: 6,
@@ -74,3 +78,5 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
 });
+
+export default LikeList;
