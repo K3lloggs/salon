@@ -8,6 +8,7 @@ import {
   Modal,
   ScrollView,
   StyleSheet as RNStyleSheet,
+  TouchableOpacity,
 } from "react-native";
 import {
   GestureHandlerRootView,
@@ -15,32 +16,14 @@ import {
   State,
 } from "react-native-gesture-handler";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { Pagination } from "./Pagination";
 import { NewArrivalBadge } from "./NewArrivalBadge";
 import { OnHoldBadge } from "./HoldBadge";
-import { FavoriteButton } from "./FavoriteButton";
+import { useFavorites } from "../context/FavoritesContext";
+import LikeCounter from "./LikeCounter";
 
-interface Watch {
-  id: string;
-  brand: string;
-  model: string;
-  price: number;
-  msrp?: number;
-  image: string[] | string;
-  movement?: string;
-  dial?: string;
-  powerReserve?: string;
-  strap?: string;
-  year?: string;
-  box?: boolean;
-  papers?: boolean;
-  newArrival?: boolean;
-  hold?: boolean;
-  referenceNumber?: string;
-  sku?: string;
-  skuNumber?: string;
-  [key: string]: any;
-}
+import { Watch } from "../types/Watch";
 
 interface SecondaryCardProps {
   watch: Watch;
@@ -64,6 +47,7 @@ const getStyles = (screenWidth: number) =>
     imageContainer: {
       width: screenWidth,
       height: "100%",
+      position: "relative",
     },
     image: {
       width: "100%",
@@ -83,6 +67,26 @@ const getStyles = (screenWidth: number) =>
       bottom: 12,
       right: 12,
       zIndex: 20,
+    },
+    favoriteButtonContainer: {
+      position: "absolute",
+      top: 12,
+      right: 12,
+      zIndex: 20,
+    },
+    favoriteIcon: {
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      backgroundColor: "rgba(255, 255, 255, 0.8)",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    likeCounterWrapper: {
+      position: "absolute",
+      top: 16,
+      right: 16,
+      zIndex: 30,
     },
   });
 
@@ -174,6 +178,8 @@ const SecondaryCardComponent: React.FC<SecondaryCardProps> = ({ watch }) => {
   const { width: screenWidth } = useWindowDimensions();
   const styles = getStyles(screenWidth);
   const modalStyles = getModalStyles(screenWidth);
+  const router = useRouter();
+  const { isFavorite, addFavorite, removeFavorite } = useFavorites();
 
   const scrollX = useRef(new Animated.Value(0)).current;
   const flatListRef = useRef<Animated.FlatList<string>>(null);
@@ -275,11 +281,6 @@ const SecondaryCardComponent: React.FC<SecondaryCardProps> = ({ watch }) => {
             />
           </View>
 
-          {/* Favorite Button (Top Right) */}
-          <View style={modalStyles.favoriteButton}>
-            <FavoriteButton />
-          </View>
-
           {/* Pagination in Modal (Top Right) */}
           {showPagination && (
             <View style={modalStyles.paginationContainer}>
@@ -339,6 +340,11 @@ const SecondaryCardComponent: React.FC<SecondaryCardProps> = ({ watch }) => {
             )}
           </View>
         )}
+
+        {/* Add LikeCounter with wrapper to ensure proper positioning */}
+        <View style={styles.likeCounterWrapper} pointerEvents="box-none">
+          <LikeCounter watch={watch} initialLikes={watch.likes || 0} />
+        </View>
 
         {/* Use TapGestureHandler to distinguish between a tap and swipe on the image carousel */}
         <TapGestureHandler

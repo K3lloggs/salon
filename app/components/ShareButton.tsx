@@ -1,9 +1,5 @@
 import React, { useCallback } from 'react';
-import {
-  Share,
-  TouchableOpacity,
-  Platform,
-} from 'react-native';
+import { Share, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 const ShareButton = ({
@@ -17,44 +13,30 @@ const ShareButton = ({
 }) => {
   const handleShare = useCallback(async () => {
     try {
-      // Create a direct URI scheme link (works in production)
       const deepLink = `watchsalon://watch/${watchId}`;
-      
-      // App store link
       const appStoreLink = "https://apps.apple.com/us/app/watch-scl/id6743322357";
       
-      // Create share content
       const title = `${watchBrand} ${watchModel}`;
-      
-      // Create platform-specific message
+
       let message;
       if (Platform.OS === 'ios') {
-        // iOS users will see the URL as a separate clickable link
-        message = `Check out this ${watchBrand} ${watchModel} at Shreve, Crump & Low!`;
+        message = `Check out this ${watchBrand} at SCL CPO`;
+        message += `\n\n${deepLink}`;
       } else {
-        // Android users need the URL in the message text
-        message = `Check out this ${watchBrand} ${watchModel} at Shreve, Crump & Low!\n\nOpen in app: ${deepLink}\n\nDon't have the app? Download it here: ${appStoreLink}`;
+        message = `Check out this ${watchBrand} at SCL CPO\n\nOpen in app: ${deepLink}\n\nDon't have the app? Download it here: ${appStoreLink}`;
       }
-      
-      // Configure share options
+
       const shareOptions = {
         title,
         message,
       };
 
-      // For iOS, include the URL directly in the message
-      if (Platform.OS === 'ios') {
-        shareOptions.message += `\n\nOpen in app: ${deepLink}`;
-      }
-
-      // iOS-specific excluded activities
       const excludedActivityTypes = Platform.OS === 'ios' 
         ? ['com.apple.UIKit.activity.Print', 'com.apple.UIKit.activity.AssignToContact']
         : undefined;
-        
-      // Perform the share action
+
       await Share.share(shareOptions, { excludedActivityTypes });
-      
+
     } catch (error) {
       console.error("Share error:", error);
     }

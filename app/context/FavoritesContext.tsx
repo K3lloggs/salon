@@ -2,9 +2,9 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Watch } from '../types/Watch';
-import { ArtPiece } from '../types/ArtPiece';
 
-export type FavoriteItem = Watch | ArtPiece;
+
+export type FavoriteItem = Watch;
 
 interface FavoritesContextType {
   favorites: FavoriteItem[];

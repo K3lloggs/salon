@@ -30,7 +30,7 @@ const LocationSection = ({ title, address, phone, hours }: LocationSectionProps)
 function AboutScreen() {
   return (
     <View style={styles.container}>
-      <FixedHeader />
+      <FixedHeader showBackButton />
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.content}>
           <Text style={styles.mainTitle}>America's Jeweler since 1796</Text>
