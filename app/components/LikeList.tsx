@@ -51,7 +51,7 @@ const styles = StyleSheet.create({
     // Use a color from your theme that offers a light greyish dark grey appearance.
     // If you update your Colors file with, for example, likeListBg: '#A9A9A9',
     // then it will match your theme consistently.
-    backgroundColor: '#A9A9A9',
+    backgroundColor: '#F5F5F7',
     borderRadius: 8,
     alignSelf: 'flex-start',
   },
