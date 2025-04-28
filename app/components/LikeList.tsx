@@ -1,8 +1,7 @@
-// app/components/LikeList.tsx
 import React from 'react';
 import { View, Text, StyleSheet, ViewStyle, StyleProp } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import Colors from '../../constants/Colors'; // Import your theme colors
+import { useTheme } from '../context/ThemeContext';
 
 interface LikeListProps {
   initialLikes: number;
@@ -16,6 +15,14 @@ export const LikeList: React.FC<LikeListProps> = ({
   isLiked = false,
   style,
 }) => {
+  const { isDark } = useTheme();
+  
+  // Define theme-specific colors
+  const backgroundColor = isDark ? '#333' : '#F5F5F7';
+  const textColor = isDark ? '#FFF' : '#002d4e';
+  const iconColor = isDark ? '#81b0ff' : '#002d4e';
+  const labelOpacity = isDark ? 0.8 : 0.7;
+
   const formatCount = (count: number): string => {
     if (count >= 1000000) {
       return `${(count / 1000000).toFixed(1)}m`;
@@ -27,17 +34,21 @@ export const LikeList: React.FC<LikeListProps> = ({
   };
 
   return (
-    <View style={[styles.container, style]}>
+    <View style={[
+      styles.container, 
+      { backgroundColor },
+      style
+    ]}>
       <View style={styles.contentWrapper}>
         <Ionicons
           name={isLiked ? 'bookmark' : 'bookmark-outline'}
           size={15}
-          color="#002d4e"
-          style={styles.icon}
+          color={iconColor}
+          style={[styles.icon, { color: iconColor }]}
         />
-        <Text style={styles.likeText}>
+        <Text style={[styles.likeText, { color: textColor }]}>
           {formatCount(initialLikes)}
-          <Text style={styles.label}>
+          <Text style={[styles.label, { color: textColor, opacity: labelOpacity }]}>
             {initialLikes === 1 ? ' Like' : ' Likes'}
           </Text>
         </Text>
@@ -48,10 +59,6 @@ export const LikeList: React.FC<LikeListProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    // Use a color from your theme that offers a light greyish dark grey appearance.
-    // If you update your Colors file with, for example, likeListBg: '#A9A9A9',
-    // then it will match your theme consistently.
-    backgroundColor: '#F5F5F7',
     borderRadius: 8,
     alignSelf: 'flex-start',
   },
@@ -64,18 +71,14 @@ const styles = StyleSheet.create({
   icon: {
     marginRight: 6,
     opacity: 0.9,
-    color: '#002d4e',
   },
   likeText: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#002d4e',
     letterSpacing: -0.3,
   },
   label: {
     fontWeight: '400',
-    color: '#002d4e',
-    opacity: 0.7,
   },
 });
 

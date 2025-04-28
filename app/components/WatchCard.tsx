@@ -1,14 +1,13 @@
-import React, { useState, useRef, memo, useCallback, useMemo } from "react";
+import React, { useState, useRef, memo, useCallback, useMemo, useEffect } from "react";
 import {
   View,
   Text,
   StyleSheet,
   Animated,
   TouchableOpacity,
-  Image,
   LayoutChangeEvent,
   Platform,
-  Dimensions,
+  useWindowDimensions,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Watch } from "../types/Watch";
@@ -17,9 +16,9 @@ import { Pagination } from "./Pagination";
 import LikeCounter from "./LikeCounter";
 import { OnHoldBadge } from "./HoldBadge";
 import { Ionicons } from "@expo/vector-icons";
+import { useTheme } from "../context/ThemeContext";
 
 const IMAGE_ASPECT_RATIO = 9 / 11;
-const DEFAULT_CARD_WIDTH = Dimensions.get("window").width;
 
 interface WatchCardProps {
   watch: Watch;
@@ -93,29 +92,40 @@ const BadgesDisplay = memo(({ newArrival, hold }: { newArrival?: boolean; hold?:
   );
 });
 
-const PriceDisplay = memo(({ price, msrp }: { price: number | string; msrp?: number }) => (
-  <View style={styles.priceContainer}>
-    <View>
-      {msrp ? (
-        <View style={styles.msrpContainer}>
-          <Text style={styles.msrpLabel}>MSRP: </Text>
-          <Text style={styles.msrpValue}>${msrp.toLocaleString()}</Text>
-        </View>
-      ) : null}
-      <Text style={[styles.price, msrp ? styles.withMsrp : styles.singlePrice]}>
-        ${typeof price === "number" ? price.toLocaleString() : "N/A"}
-      </Text>
+const PriceDisplay = memo(({ price, msrp }: { price: number | string; msrp?: number }) => {
+  const { isDark } = useTheme();
+  const textColor = isDark ? "#fff" : "#002d4e";
+  
+  return (
+    <View style={styles.priceContainer}>
+      <View>
+        {msrp ? (
+          <View style={styles.msrpContainer}>
+            <Text style={[styles.msrpLabel, { color: textColor }]}>MSRP: </Text>
+            <Text style={[styles.msrpValue, { color: textColor }]}>${msrp.toLocaleString()}</Text>
+          </View>
+        ) : null}
+        <Text style={[styles.price, msrp ? styles.withMsrp : styles.singlePrice, { color: textColor }]}>
+          ${typeof price === "number" ? price.toLocaleString() : "N/A"}
+        </Text>
+      </View>
     </View>
-  </View>
-));
+  );
+});
 
 const WatchCardComponent = ({ watch, disableNavigation = false }: WatchCardProps) => {
-  const [cardWidth, setCardWidth] = useState<number>(DEFAULT_CARD_WIDTH);
   const scrollX = useRef(new Animated.Value(0)).current;
+  const { isDark } = useTheme();
+  
+  // Use the more modern hook for window dimensions
+  const { width: windowWidth } = useWindowDimensions();
+  
+  // Use full screen width for the card
+  const cardWidth = useMemo(() => {
+    return windowWidth; // 100% of screen width
+  }, [windowWidth]);
 
-  // Process images:
-  // - If watch.image is an array with 2+ images, use images starting from index 1.
-  // - If only one image exists (or it's a string), use that image.
+  // Process images based on the watch data structure
   const images = useMemo(() => {
     if (Array.isArray(watch.image)) {
       if (watch.image.length >= 2) {
@@ -126,7 +136,7 @@ const WatchCardComponent = ({ watch, disableNavigation = false }: WatchCardProps
     } else if (typeof watch.image === "string" && watch.image) {
       return [watch.image];
     } else {
-      return []; // No image fallback
+      return [];
     }
   }, [watch.image]);
 
@@ -151,16 +161,6 @@ const WatchCardComponent = ({ watch, disableNavigation = false }: WatchCardProps
     }
   }, [disableNavigation, handlePress]);
 
-  const onCardLayout = useCallback(
-    (event: LayoutChangeEvent) => {
-      const width = event.nativeEvent.layout.width;
-      if (width !== cardWidth && width > 0) {
-        setCardWidth(width);
-      }
-    },
-    [cardWidth]
-  );
-
   const handleScroll = Animated.event(
     [{ nativeEvent: { contentOffset: { x: scrollX } } }],
     { useNativeDriver: false }
@@ -184,15 +184,30 @@ const WatchCardComponent = ({ watch, disableNavigation = false }: WatchCardProps
 
   const showPagination = images.length > 1;
 
+  // Theme-specific colors
+  const cardBgColor = isDark ? "#222" : "#FFFFFF";
+  const cardBorderColor = isDark ? "#444" : "#C8C7CC";
+  const textColor = isDark ? "#fff" : "#002d4e";
+  const imageContainerBg = isDark ? "#333" : "#F6F7F8";
+
   return (
-    <View style={styles.cardWrapper} onLayout={onCardLayout}>
+    <View 
+      style={[
+        styles.cardWrapper, 
+        { 
+          width: cardWidth, 
+          backgroundColor: cardBgColor, 
+          borderColor: cardBorderColor
+        }
+      ]}
+    >
       <TouchableOpacity
         activeOpacity={0.95}
         onPress={handleCardPress}
-        style={styles.card}
+        style={[styles.card, { backgroundColor: cardBgColor }]}
         disabled={disableNavigation}
       >
-        <View style={styles.imageContainer}>
+        <View style={[styles.imageContainer, { backgroundColor: imageContainerBg }]}>
           <Animated.FlatList
             horizontal
             pagingEnabled
@@ -230,16 +245,16 @@ const WatchCardComponent = ({ watch, disableNavigation = false }: WatchCardProps
           </View>
         </View>
 
-        <View style={styles.infoContainer}>
+        <View style={[styles.infoContainer, { backgroundColor: cardBgColor }]}>
           <View style={styles.headerRow}>
-            <Text style={styles.brand} numberOfLines={1}>
+            <Text style={[styles.brand, { color: textColor }]} numberOfLines={1}>
               {watch.brand || "Brand"}
             </Text>
             <View style={styles.priceWrapper}>
               <PriceDisplay price={watch.price || 0} msrp={watch.msrp} />
             </View>
           </View>
-          <Text style={styles.model} numberOfLines={3}>
+          <Text style={[styles.model, { color: textColor }]} numberOfLines={3}>
             {watch.model || "Model"}
           </Text>
         </View>
@@ -260,12 +275,9 @@ const styles = StyleSheet.create({
   cardWrapper: {
     marginVertical: 12,
     borderRadius: 12,
-    backgroundColor: "#FFFFFF",
-    width: "100%",
-    alignSelf: "center",
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "#C8C7CC",
+    alignSelf: "center",
     ...Platform.select({
       ios: {
         shadowColor: "#000",
@@ -279,14 +291,12 @@ const styles = StyleSheet.create({
     }),
   },
   card: {
-    backgroundColor: "#FFFFFF",
     borderRadius: 12,
     overflow: "hidden",
   },
   imageContainer: {
     width: "100%",
     aspectRatio: IMAGE_ASPECT_RATIO,
-    backgroundColor: "#F6F7F8",
     position: "relative",
   },
   accessoriesContainer: {
@@ -308,7 +318,6 @@ const styles = StyleSheet.create({
   infoContainer: {
     padding: 16,
     paddingBottom: 12,
-    backgroundColor: "#FFFFFF",
   },
   headerRow: {
     position: "relative",
@@ -325,7 +334,6 @@ const styles = StyleSheet.create({
   brand: {
     fontSize: 20,
     fontWeight: "500",
-    color: "#002d4e",
     letterSpacing: 0.3,
     flex: 1,
     paddingRight: 8,
@@ -333,7 +341,6 @@ const styles = StyleSheet.create({
   model: {
     fontSize: 13,
     fontWeight: "500",
-    color: "#002d4e",
     letterSpacing: 0.4,
     marginTop: 2,
     marginRight: 100,
@@ -350,12 +357,10 @@ const styles = StyleSheet.create({
   },
   msrpLabel: {
     fontSize: 12,
-    color: "#002d4e",
     opacity: 0.8,
   },
   msrpValue: {
     fontSize: 12,
-    color: "#002d4e",
     opacity: 0.8,
     textDecorationLine: "line-through",
     fontWeight: "700",
@@ -363,7 +368,6 @@ const styles = StyleSheet.create({
   price: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#002d4e",
     letterSpacing: 0.3,
   },
   withMsrp: {

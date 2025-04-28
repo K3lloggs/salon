@@ -7,6 +7,7 @@ import { AnimatedSplashScreen } from './splash';
 import { LoadingProvider } from './context/LoadingContext';
 import { LoadingOverlay } from './components/LoadingOverlay';
 import { useLoading } from './context/LoadingContext';
+import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { StripeProvider } from '@stripe/stripe-react-native';
 import * as Linking from 'expo-linking';
 import { useEffect } from 'react';
@@ -14,6 +15,7 @@ import { useRouter } from 'expo-router';
 
 function MainLayout() {
   const { isLoading } = useLoading();
+  const { isDark } = useTheme();
   const router = useRouter();
   
   // Handle deep links
@@ -62,10 +64,10 @@ function MainLayout() {
   }, [router]);
   
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: isDark ? '#000' : '#fff' }}>
       <FavoritesProvider>
         <SortProvider>
-          <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+          <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={isDark ? "#000000" : "#ffffff"} />
           <Stack
             screenOptions={{
               headerShown: false,
@@ -102,7 +104,9 @@ export default function RootLayout() {
         urlScheme="watchsalon" // Required for 3D Secure and bank redirects
       >
         <LoadingProvider>
-          <MainLayout />
+          <ThemeProvider>
+            <MainLayout />
+          </ThemeProvider>
         </LoadingProvider>
       </StripeProvider>
     </AnimatedSplashScreen>

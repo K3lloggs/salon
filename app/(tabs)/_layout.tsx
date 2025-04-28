@@ -4,6 +4,7 @@ import { Tabs, usePathname } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SortProvider } from '../context/SortContext';
 import { useLoading } from '../context/LoadingContext';
+import { useTheme } from '../context/ThemeContext';
 import Colors from '../../constants/Colors';
 
 type TabBarIconProps = {
@@ -34,6 +35,7 @@ function TabBarIcon({ name, color, focused }: TabBarIconProps) {
 export default function TabLayout() {
   const pathname = usePathname();
   const { hideLoading } = useLoading();
+  const { isDark } = useTheme();
   const previousPathRef = useRef(pathname);
 
   // Immediately disable loading state on mount, never re-render due to loading changes
@@ -53,19 +55,20 @@ export default function TabLayout() {
         screenOptions={{
           headerShown: false,
           tabBarStyle: {
-            backgroundColor: Colors.tabBarBg,
+            backgroundColor: isDark ? '#222' : Colors.tabBarBg,
             borderTopWidth: 1,
-            borderTopColor: Colors.borderLight,
+            borderTopColor: isDark ? '#444' : Colors.borderLight,
             height: 90,
             paddingBottom: 20,
             paddingTop: 10,
           },
-          tabBarActiveTintColor: Colors.primaryBlue,
-          tabBarInactiveTintColor: '#7a7a7a',
+          tabBarActiveTintColor: isDark ? '#81b0ff' : Colors.primaryBlue,
+          tabBarInactiveTintColor: isDark ? '#888' : '#7a7a7a',
           tabBarLabelStyle: {
             fontSize: 10,
             fontWeight: '500',
             marginTop: 2,
+            color: isDark ? '#fff' : undefined,
           },
         }}
       >

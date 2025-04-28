@@ -24,7 +24,7 @@ import { collection, addDoc } from 'firebase/firestore';
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { db } from '../../firebaseConfig';
 import { Watch } from '../types/Watch';
-import Colors from '../../constants/Colors';
+import { useThemedStyles } from '../hooks/useThemedStyles';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -44,6 +44,7 @@ export default function TradeScreen() {
   const router = useRouter();
   const { watch } = useLocalSearchParams() as { watch?: string };
   const watchData: Watch | undefined = watch ? JSON.parse(watch) : undefined;
+  const { isDark, colors, styles: themeStyles } = useThemedStyles();
 
   const [isFocused, setIsFocused] = useState(false);
   useFocusEffect(
@@ -259,8 +260,8 @@ export default function TradeScreen() {
   }, [activeMode]);
 
   return (
-    <View style={styles.mainContainer}>
-      <StatusBar backgroundColor={Colors.headerBg} barStyle="dark-content" />
+    <View style={[styles.mainContainer, { backgroundColor: isDark ? colors.background : '#ffffff' }]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
       <FixedHeader 
         title={headerText}
         showBackButton={false}
@@ -276,11 +277,12 @@ export default function TradeScreen() {
         >
           {/* Step Indicator */}
           <View style={styles.stepIndicator}>
-            <View style={styles.stepLineBackground} />
+            <View style={[styles.stepLineBackground, { backgroundColor: isDark ? '#444' : '#E0E0E0' }]} />
             <View style={styles.stepLineProgressContainer}>
               <View
                 style={[
                   styles.stepLineProgress,
+                  { backgroundColor: colors.primary },
                   currentStep === 1 
                     ? { width: (SCREEN_WIDTH - 48) / 2 - 18 } 
                     : { width: SCREEN_WIDTH - 48 - 36 }
@@ -288,20 +290,29 @@ export default function TradeScreen() {
               />
             </View>
             <View style={styles.stepsRow}>
-              <View style={styles.stepCircleContainer}>
-                <View style={styles.stepCircle}>
+              <View style={[styles.stepCircleContainer, { 
+                backgroundColor: isDark ? colors.background : '#FFFFFF',
+                shadowColor: isDark ? '#000' : '#000',
+              }]}>
+                <View style={[styles.stepCircle, { backgroundColor: colors.primary }]}>
                   <Text style={styles.stepNumberActive}>1</Text>
                 </View>
               </View>
               
-              <View style={styles.stepCircleContainer}>
+              <View style={[styles.stepCircleContainer, { 
+                backgroundColor: isDark ? colors.background : '#FFFFFF',
+                shadowColor: isDark ? '#000' : '#000',
+              }]}>
                 {currentStep >= 2 ? (
-                  <View style={styles.stepCircle}>
+                  <View style={[styles.stepCircle, { backgroundColor: colors.primary }]}>
                     <Text style={styles.stepNumberActive}>2</Text>
                   </View>
                 ) : (
-                  <View style={styles.inactiveStep}>
-                    <Text style={styles.stepNumberInactive}>2</Text>
+                  <View style={[styles.inactiveStep, { 
+                    backgroundColor: isDark ? colors.background : '#FFFFFF',
+                    borderColor: isDark ? '#555' : '#E0E0E0',
+                  }]}>
+                    <Text style={[styles.stepNumberInactive, { color: isDark ? '#888' : '#888888' }]}>2</Text>
                   </View>
                 )}
               </View>
@@ -309,13 +320,13 @@ export default function TradeScreen() {
           </View>
 
           {/* Mode Toggle */}
-          <View style={styles.toggleContainer}>
+          <View style={[styles.toggleContainer, { backgroundColor: isDark ? '#222' : '#F5F7FA' }]}>
             {MODES.map((mode) => (
               <TouchableOpacity
                 key={mode}
                 style={[
                   styles.toggleButton,
-                  activeMode === mode && styles.toggleButtonActive,
+                  activeMode === mode && [styles.toggleButtonActive, { backgroundColor: colors.primary }],
                   currentStep === 2 && (activeMode !== mode ? styles.toggleButtonDisabled : {}),
                 ]}
                 onPress={() => currentStep === 1 && setActiveMode(mode)}
@@ -324,6 +335,7 @@ export default function TradeScreen() {
                 <Text
                   style={[
                     styles.toggleButtonText,
+                    { color: isDark ? colors.primary : '#002d4e' },
                     activeMode === mode && styles.toggleButtonTextActive,
                     currentStep === 2 && (activeMode !== mode ? styles.toggleButtonTextDisabled : {}),
                   ]}
@@ -336,14 +348,18 @@ export default function TradeScreen() {
 
           {/* Watch Information Card */}
           {watchData && isFocused && (
-            <BlurView intensity={10} tint="light" style={styles.watchCard}>
-              <View style={styles.watchIconContainer}>
-                <Ionicons name="watch-outline" size={24} color={Colors.primaryBlue} />
+            <BlurView intensity={10} tint={isDark ? "dark" : "light"} style={[styles.watchCard, {
+              borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 45, 78, 0.08)',
+            }]}>
+              <View style={[styles.watchIconContainer, {
+                backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 45, 78, 0.08)',
+              }]}>
+                <Ionicons name="watch-outline" size={24} color={colors.primary} />
               </View>
               <View style={styles.watchInfoContent}>
-                <Text style={styles.watchBrand}>{watchData.brand}</Text>
-                <Text style={styles.watchModel}>{watchData.model}</Text>
-                <Text style={styles.watchPrice}>${watchData.price?.toLocaleString()}</Text>
+                <Text style={[styles.watchBrand, { color: colors.primary }]}>{watchData.brand}</Text>
+                <Text style={[styles.watchModel, { color: colors.text }]}>{watchData.model}</Text>
+                <Text style={[styles.watchPrice, { color: colors.primary }]}>${watchData.price?.toLocaleString()}</Text>
               </View>
             </BlurView>
           )}
@@ -351,21 +367,27 @@ export default function TradeScreen() {
           {/* Step 1: Watch Information */}
           {currentStep === 1 && (
             <>
-              <Text style={styles.sectionTitle}>Watch Details</Text>
+              <Text style={[styles.sectionTitle, { color: colors.primary }]}>Watch Details</Text>
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Reference Number</Text>
+                <Text style={[styles.label, { color: colors.primary }]}>Reference Number</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, {
+                    backgroundColor: isDark ? '#333' : '#FFFFFF',
+                    color: colors.text,
+                    borderColor: isDark ? '#555' : '#E0E0E0',
+                  }]}
                   value={formData.reference}
                   onChangeText={(text) => updateField('reference', text)}
                   placeholder="Enter watch reference (e.g., 116610LN)"
-                  placeholderTextColor="#8E8E8E"
+                  placeholderTextColor={isDark ? "#aaa" : "#8E8E8E"}
                 />
               </View>
               <View style={styles.photoSection}>
-                <Text style={styles.label}>Watch Photo *</Text>
+                <Text style={[styles.label, { color: colors.primary }]}>Watch Photo *</Text>
                 {formData.photo ? (
-                  <View style={styles.photoPreviewContainer}>
+                  <View style={[styles.photoPreviewContainer, {
+                    borderColor: isDark ? '#555' : '#E0E0E0',
+                  }]}>
                     <Image source={{ uri: formData.photo }} style={styles.photoPreview} />
                     <TouchableOpacity
                       style={styles.removePhotoButton}
@@ -376,17 +398,23 @@ export default function TradeScreen() {
                   </View>
                 ) : (
                   <View style={styles.photoButtonsContainer}>
-                    <TouchableOpacity style={styles.photoButton} onPress={takePhoto}>
-                      <Ionicons name="camera-outline" size={28} color={Colors.primaryBlue} />
-                      <Text style={styles.photoButtonText}>Take Photo</Text>
+                    <TouchableOpacity style={[styles.photoButton, {
+                      backgroundColor: isDark ? '#333' : '#FAFAFA',
+                      borderColor: isDark ? '#555' : '#E0E0E0',
+                    }]} onPress={takePhoto}>
+                      <Ionicons name="camera-outline" size={28} color={colors.primary} />
+                      <Text style={[styles.photoButtonText, { color: colors.primary }]}>Take Photo</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.photoButton} onPress={pickImage}>
-                      <Ionicons name="image-outline" size={28} color={Colors.primaryBlue} />
-                      <Text style={styles.photoButtonText}>Upload Photo</Text>
+                    <TouchableOpacity style={[styles.photoButton, {
+                      backgroundColor: isDark ? '#333' : '#FAFAFA',
+                      borderColor: isDark ? '#555' : '#E0E0E0',
+                    }]} onPress={pickImage}>
+                      <Ionicons name="image-outline" size={28} color={colors.primary} />
+                      <Text style={[styles.photoButtonText, { color: colors.primary }]}>Upload Photo</Text>
                     </TouchableOpacity>
                   </View>
                 )}
-                <Text style={styles.helperText}>
+                <Text style={[styles.helperText, { color: isDark ? '#ccc' : '#666666' }]}>
                   {formData.photo 
                     ? "Tap the photo to change it" 
                     : "* Photo required: A clear photo helps us with your valuation"}
@@ -398,38 +426,50 @@ export default function TradeScreen() {
           {/* Step 2: Contact Information */}
           {currentStep === 2 && (
             <>
-              <Text style={styles.sectionTitle}>Contact Information</Text>
+              <Text style={[styles.sectionTitle, { color: colors.primary }]}>Contact Information</Text>
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Phone Number</Text>
+                <Text style={[styles.label, { color: colors.primary }]}>Phone Number</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, {
+                    backgroundColor: isDark ? '#333' : '#FFFFFF',
+                    color: colors.text,
+                    borderColor: isDark ? '#555' : '#E0E0E0',
+                  }]}
                   value={formData.phoneNumber}
                   onChangeText={(text) => updateField('phoneNumber', text)}
                   placeholder="Enter your phone number"
-                  placeholderTextColor="#8E8E8E"
+                  placeholderTextColor={isDark ? "#aaa" : "#8E8E8E"}
                   keyboardType="phone-pad"
                 />
               </View>
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Email Address</Text>
+                <Text style={[styles.label, { color: colors.primary }]}>Email Address</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, {
+                    backgroundColor: isDark ? '#333' : '#FFFFFF',
+                    color: colors.text,
+                    borderColor: isDark ? '#555' : '#E0E0E0',
+                  }]}
                   value={formData.email}
                   onChangeText={(text) => updateField('email', text)}
                   placeholder="Enter your email address"
-                  placeholderTextColor="#8E8E8E"
+                  placeholderTextColor={isDark ? "#aaa" : "#8E8E8E"}
                   keyboardType="email-address"
                   autoCapitalize="none"
                 />
               </View>
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Message (Optional)</Text>
+                <Text style={[styles.label, { color: colors.primary }]}>Message (Optional)</Text>
                 <TextInput
-                  style={[styles.input, styles.textArea]}
+                  style={[styles.input, styles.textArea, {
+                    backgroundColor: isDark ? '#333' : '#FFFFFF',
+                    color: colors.text,
+                    borderColor: isDark ? '#555' : '#E0E0E0',
+                  }]}
                   value={formData.message}
                   onChangeText={(text) => updateField('message', text)}
                   placeholder="Add any additional information or questions"
-                  placeholderTextColor="#8E8E8E"
+                  placeholderTextColor={isDark ? "#aaa" : "#8E8E8E"}
                   multiline
                   numberOfLines={4}
                   textAlignVertical="top"
@@ -442,19 +482,23 @@ export default function TradeScreen() {
           <View style={styles.buttonsContainer}>
             {currentStep === 2 && (
               <TouchableOpacity
-                style={styles.backButton}
+                style={[styles.backButton, {
+                  backgroundColor: isDark ? '#333' : '#f5f5f5',
+                  borderColor: isDark ? '#555' : '#e0e0e0',
+                }]}
                 onPress={handleBackPress}
                 activeOpacity={0.85}
               >
                 <View style={styles.backButtonContent}>
-                  <Ionicons name="arrow-back" size={18} color={Colors.primaryBlue} />
-                  <Text style={styles.backButtonText}>Back</Text>
+                  <Ionicons name="arrow-back" size={18} color={colors.primary} />
+                  <Text style={[styles.backButtonText, { color: colors.primary }]}>Back</Text>
                 </View>
               </TouchableOpacity>
             )}
             <TouchableOpacity
               style={[
                 styles.primaryButton, 
+                { backgroundColor: colors.primary },
                 !canProceed && styles.primaryButtonDisabled,
                 currentStep === 2 ? { flex: 2 } : { flex: 1 }
               ]}
@@ -487,7 +531,6 @@ export default function TradeScreen() {
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: Colors.offWhite,
   },
   keyboardAvoid: {
     flex: 1,
@@ -511,7 +554,6 @@ const styles = StyleSheet.create({
     left: 18,
     right: 18,
     height: 2,
-    backgroundColor: '#E0E0E0',
     zIndex: 1,
   },
   stepLineProgressContainer: {
@@ -524,7 +566,7 @@ const styles = StyleSheet.create({
   stepLineProgress: {
     height: 4,
     borderRadius: 2,
-    backgroundColor: Colors.primaryBlue,
+    zIndex: 2,
   },
   stepsRow: {
     flexDirection: 'row',
@@ -539,10 +581,8 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: Colors.offWhite,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
@@ -554,12 +594,9 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.primaryBlue,
   },
   inactiveStep: {
-    backgroundColor: Colors.offWhite,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
     width: 30,
     height: 30,
     borderRadius: 15,
@@ -574,12 +611,10 @@ const styles = StyleSheet.create({
   stepNumberInactive: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#888888',
   },
   // Toggle Buttons
   toggleContainer: {
     flexDirection: 'row',
-    backgroundColor: Colors.buttonBg,
     borderRadius: 12,
     marginBottom: 28,
     width: '100%',
@@ -592,7 +627,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   toggleButtonActive: {
-    backgroundColor: Colors.primaryBlue,
   },
   toggleButtonDisabled: {
     opacity: 0.3,
@@ -600,7 +634,6 @@ const styles = StyleSheet.create({
   toggleButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.primaryBlue,
   },
   toggleButtonTextActive: {
     color: '#FFFFFF',
@@ -617,8 +650,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(0, 45, 78, 0.08)',
-    backgroundColor: Colors.offWhite,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -629,7 +660,6 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: 'rgba(0, 45, 78, 0.08)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
@@ -640,24 +670,20 @@ const styles = StyleSheet.create({
   watchBrand: {
     fontSize: 16,
     fontWeight: '700',
-    color: Colors.primaryBlue,
     marginBottom: 4,
   },
   watchModel: {
     fontSize: 14,
-    color: '#4A4A4A',
     marginBottom: 6,
   },
   watchPrice: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.primaryBlue,
   },
   // Form Elements
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: Colors.primaryBlue,
     marginBottom: 20,
   },
   inputGroup: {
@@ -667,18 +693,14 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.primaryBlue,
     marginBottom: 8,
   },
   input: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
-    color: '#333',
     borderWidth: 1,
-    borderColor: '#E0E0E0',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
@@ -699,17 +721,14 @@ const styles = StyleSheet.create({
   },
   photoButton: {
     flex: 0.48,
-    backgroundColor: Colors.buttonBg,
     borderRadius: 12,
     paddingVertical: 24,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#E0E0E0',
     borderStyle: 'dashed',
   },
   photoButtonText: {
-    color: Colors.primaryBlue,
     marginTop: 10,
     fontSize: 14,
     fontWeight: '500',
@@ -720,7 +739,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
   },
   photoPreview: {
     width: '100%',
@@ -737,7 +755,6 @@ const styles = StyleSheet.create({
   },
   helperText: {
     fontSize: 12,
-    color: '#666666',
     marginTop: 10,
     textAlign: 'center',
   },
@@ -752,7 +769,6 @@ const styles = StyleSheet.create({
   primaryButton: {
     borderRadius: 12,
     overflow: 'hidden',
-    backgroundColor: Colors.primaryBlue,
   },
   primaryButtonContent: {
     paddingVertical: 16,
@@ -772,15 +788,13 @@ const styles = StyleSheet.create({
   primaryButtonIcon: {
     marginLeft: 8,
   },
-  // Back Button (Simplified)
+  // Back Button
   backButton: {
     borderRadius: 8,
     overflow: 'hidden',
     flex: 1,
     marginRight: 6,
-    backgroundColor: Colors.buttonBg,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
   },
   backButtonContent: {
     paddingVertical: 12,
@@ -790,7 +804,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   backButtonText: {
-    color: Colors.primaryBlue,
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,

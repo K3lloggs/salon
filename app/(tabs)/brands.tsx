@@ -14,6 +14,7 @@ import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../../firebaseConfig';
 import { FixedHeader } from '../components/FixedHeader';
 import Colors from '../../constants/Colors';
+import { useThemedStyles } from '../hooks/useThemedStyles';
 
 interface Brand {
   id: string;
@@ -32,10 +33,16 @@ interface BrandCardProps {
 
 const BrandCard: React.FC<BrandCardProps> = ({ brand }) => {
   const router = useRouter();
+  const { isDark, colors } = useThemedStyles();
+  
   return (
     <Pressable
       style={({ pressed }) => [
         styles.cardWrapper,
+        {
+          backgroundColor: colors.background,
+          shadowColor: isDark ? '#000' : '#003366',
+        },
         pressed && { opacity: 0.9 },
       ]}
       onPress={() =>
@@ -45,17 +52,20 @@ const BrandCard: React.FC<BrandCardProps> = ({ brand }) => {
         })
       }
     >
-      <View style={styles.card}>
+      <View style={[styles.card, { 
+        backgroundColor: colors.card,
+        borderColor: colors.border
+      }]}>
         <View style={styles.cardContent}>
           <View style={styles.textContainer}>
-            <Text style={styles.brandName} numberOfLines={1}>
+            <Text style={[styles.brandName, { color: colors.primary }]} numberOfLines={1}>
               {brand.name}
             </Text>
-            <Text style={styles.modelsCount}>
+            <Text style={[styles.modelsCount, { color: isDark ? '#aaa' : '#666' }]}>
               {brand.models} Models
             </Text>
           </View>
-          <View style={styles.imageContainer}>
+          <View style={[styles.imageContainer, { backgroundColor: colors.card }]}>
             {/* Use the premium image (from most expensive watch) if available */}
             {(brand.premiumImage || brand.image) && (
               <Image
@@ -77,6 +87,7 @@ export default function BrandsScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const { styles: themeStyles, colors } = useThemedStyles();
 
   // Priority brands in the desired order
   const priorityBrands = ['Rolex','Patek Philippe','Audemars Piguet','A. Lange & Söhne'];
@@ -195,7 +206,7 @@ export default function BrandsScreen() {
 
   // Always show the header, never show loading indicator
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, themeStyles.container]}>
       <FixedHeader 
         title="Brands"
         showSearch={true}
@@ -216,7 +227,7 @@ export default function BrandsScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={Colors.primaryBlue}
+            tintColor={colors.primary}
           />
         }
       />
@@ -226,8 +237,7 @@ export default function BrandsScreen() {
 
 const styles = StyleSheet.create({
   container: { 
-    flex: 1, 
-    backgroundColor: Colors.offWhite 
+    flex: 1,
   },
   listContent: { 
     padding: 10 
@@ -236,22 +246,18 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginVertical: 4,
     borderRadius: 8,
-    backgroundColor: Colors.offWhite,
     width: '100%',
     maxWidth: 400,
     alignSelf: 'center',
-    shadowColor: '#003366',
     shadowOpacity: .1,
     shadowOffset: { width: 0, height: 4 },
     shadowRadius: 8,
     elevation: 5,
   },
   card: {
-    backgroundColor: '#FCFCFC', // Even whiter, but still maintaining a slight off-white tint
     borderRadius: 8,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: Colors.borderLight,
   },
   cardContent: {
     flexDirection: 'row',
@@ -264,7 +270,6 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     flex: 1,
-    backgroundColor: '#FCFCFC', // Match card background
     overflow: 'hidden',
   },
   brandImage: {
@@ -274,15 +279,12 @@ const styles = StyleSheet.create({
   brandName: {
     fontSize: 22,
     fontWeight: '700',
-    color: Colors.primaryBlue,
     letterSpacing: 0.2,
   },
   modelsCount: {
     fontSize: 16,
-    color: '#666',
     letterSpacing: 0.2,
   },
-
   centered: {
     justifyContent: 'center',
     alignItems: 'center',

@@ -13,6 +13,7 @@ import { useRouter, usePathname } from 'expo-router';
 import { Watch } from '../types/Watch';
 import ShareButton from './ShareButton';
 import Colors from '../../constants/Colors';
+import { useTheme } from '../context/ThemeContext';
 
 interface FixedHeaderProps {
   title?: string;
@@ -43,6 +44,7 @@ function FixedHeaderComponent({
 }: FixedHeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const { isDark } = useTheme();
   const [searchInputText, setSearchInputText] = useState(searchQuery);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const filterButtonRef = useRef(null);
@@ -107,38 +109,46 @@ function FixedHeaderComponent({
     }
   };
 
+  // Define theme-based colors
+  const backgroundColor = isDark ? '#222' : Colors.headerBg;
+  const borderColor = isDark ? '#444' : Colors.borderLight;
+  const iconColor = isDark ? '#81b0ff' : Colors.primaryBlue;
+  const inputTextColor = isDark ? '#fff' : '#333';
+  const buttonBackgroundColor = isDark ? '#333' : Colors.buttonBg;
+  const buttonBorderColor = isDark ? '#555' : '#c0c0c0';
+
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.header}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor, borderBottomColor: borderColor }]}>
+      <View style={[styles.header, { backgroundColor }]}>
         {/* Left section with all buttons */}
         <View style={styles.leftSection}>
           {showBackButton && (
             <TouchableOpacity
-              style={styles.iconButton}
+              style={[styles.iconButton, { backgroundColor: buttonBackgroundColor, borderColor: buttonBorderColor }]}
               onPress={handleBackNavigation}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               activeOpacity={0.7}
             >
-              <Feather name="arrow-left" size={24} color={Colors.primaryBlue} />
+              <Feather name="arrow-left" size={24} color={iconColor} />
             </TouchableOpacity>
           )}
           
           {showFavorites && (
             <TouchableOpacity
-              style={styles.iconButton}
+              style={[styles.iconButton, { backgroundColor: buttonBackgroundColor, borderColor: buttonBorderColor }]}
               onPress={() => handleNavigation('/favorites')}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               accessibilityLabel="Favorites"
               activeOpacity={0.7}
             >
-              <Ionicons name="bookmark-outline" size={22} color={Colors.primaryBlue} />
+              <Ionicons name="bookmark-outline" size={22} color={iconColor} />
             </TouchableOpacity>
           )}
 
           {showFilter && (
             <TouchableOpacity
               ref={filterButtonRef}
-              style={styles.iconButton}
+              style={[styles.iconButton, { backgroundColor: buttonBackgroundColor, borderColor: buttonBorderColor }]}
               onPress={toggleFilter}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               accessibilityLabel="Filter options"
@@ -146,7 +156,7 @@ function FixedHeaderComponent({
               accessibilityHint="Opens filter options dropdown"
               activeOpacity={0.7}
             >
-              <Ionicons name="filter-outline" size={22} color={Colors.primaryBlue} />
+              <Ionicons name="filter-outline" size={22} color={iconColor} />
             </TouchableOpacity>
           )}
         </View>
@@ -154,14 +164,14 @@ function FixedHeaderComponent({
         {/* Right section with search */}
         <View style={styles.rightSection}>
           {showSearch ? (
-            <View style={styles.searchContainer}>
+            <View style={[styles.searchContainer, { backgroundColor: buttonBackgroundColor, borderColor: buttonBorderColor }]}>
               <View style={styles.searchIconWrapper}>
-                <Ionicons name="search" size={20} color={Colors.primaryBlue} />
+                <Ionicons name="search" size={20} color={iconColor} />
               </View>
               <TextInput
-                style={styles.searchInput}
+                style={[styles.searchInput, { color: inputTextColor }]}
                 placeholder="Search"
-                placeholderTextColor="#999"
+                placeholderTextColor={isDark ? '#aaa' : '#999'}
                 value={searchInputText}
                 onChangeText={handleTextChange}
                 onSubmitEditing={handleSearchSubmit}
@@ -176,7 +186,7 @@ function FixedHeaderComponent({
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                   activeOpacity={0.7}
                 >
-                  <Ionicons name="close" size={20} color={Colors.primaryBlue} />
+                  <Ionicons name="close" size={20} color={iconColor} />
                 </TouchableOpacity>
               ) : null}
             </View>
@@ -188,8 +198,8 @@ function FixedHeaderComponent({
               watchBrand={watch.brand}
               watchModel={watch.model}
               size={22}
-              color={Colors.primaryBlue}
-              style={styles.iconButton}
+              color={iconColor}
+              style={[styles.iconButton, { backgroundColor: buttonBackgroundColor, borderColor: buttonBorderColor }]}
             />
           )}
         </View>
@@ -203,9 +213,7 @@ export const FixedHeader = memo(FixedHeaderComponent);
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: Colors.headerBg,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.borderLight,
     zIndex: 10,
     width: '100%',
     position: 'relative',
@@ -216,7 +224,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 10,
-    backgroundColor: Colors.headerBg,
     height: 80, // Increased height to accommodate larger logo
     position: 'relative',
   },
@@ -257,9 +264,7 @@ const styles = StyleSheet.create({
     width: 42,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.buttonBg,
     borderWidth: 1.5,
-    borderColor: '#c0c0c0', // Added stronger border for contrast
     ...Platform.select({
       ios: {
         shadowColor: Colors.primaryBlue,
@@ -276,12 +281,10 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.buttonBg,
     borderRadius: 8,
     height: 42,
     marginRight: 6,
     borderWidth: 1.5,
-    borderColor: '#c0c0c0', // Added stronger border for contrast
     ...Platform.select({
       ios: {
         shadowColor: Colors.primaryBlue,
@@ -305,7 +308,6 @@ const styles = StyleSheet.create({
     flex: 1,
     height: '100%',
     fontSize: 15,
-    color: '#333',
     ...Platform.select({
       android: {
         padding: 0,

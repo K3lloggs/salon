@@ -1,17 +1,23 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   collection,
   getDocs,
 } from "firebase/firestore";
 import { db } from "../../firebaseConfig";
 import { Watch } from "../types/Watch";
-import { SortOption } from "../context/SortContext";
+import { SortOption, useSortContext } from "../context/SortContext";
 
 export function useWatches(searchQuery: string = "", sortOption: SortOption = null) {
   const [allWatches, setAllWatches] = useState<Watch[]>([]);
   const [filteredWatches, setFilteredWatches] = useState<Watch[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Use sort context to get the getSortedWatches function
+  const { getSortedWatches } = useSortContext();
+  
+  // Store random order to keep it consistent between renders
+  const randomOrderRef = useRef<Map<string, number>>(new Map());
 
   // Fetch all watches once when the hook is mounted.
   useEffect(() => {
@@ -76,6 +82,13 @@ export function useWatches(searchQuery: string = "", sortOption: SortOption = nu
           } as Watch;
         });
 
+        // Initialize random order values for each watch
+        watchesData.forEach(watch => {
+          if (!randomOrderRef.current.has(watch.id)) {
+            randomOrderRef.current.set(watch.id, Math.random());
+          }
+        });
+
         setAllWatches(watchesData);
       } catch (err) {
         console.error("Error fetching watches:", err);
@@ -111,18 +124,10 @@ export function useWatches(searchQuery: string = "", sortOption: SortOption = nu
       });
     }
 
-    // Sort the filtered list based on sortOption.
-    if (sortOption === "highToLow") {
-      filtered = filtered.slice().sort((a, b) => b.price - a.price);
-    } else if (sortOption === "lowToHigh") {
-      filtered = filtered.slice().sort((a, b) => a.price - b.price);
-    } else {
-      // Default sort by brand alphabetically.
-      filtered = filtered.slice().sort((a, b) => a.brand.localeCompare(b.brand));
-    }
-
-    setFilteredWatches(filtered);
-  }, [allWatches, searchQuery, sortOption]);
+    // Use getSortedWatches from context to apply consistent sorting
+    const sorted = getSortedWatches(filtered, sortOption);
+    setFilteredWatches(sorted);
+  }, [allWatches, searchQuery, sortOption, getSortedWatches]);
 
   return { watches: filteredWatches, loading, error };
 }

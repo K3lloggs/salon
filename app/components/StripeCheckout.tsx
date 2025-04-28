@@ -20,6 +20,7 @@ import { getFunctions, httpsCallable } from "firebase/functions";
 import { getApp } from "firebase/app";
 import { doc, getFirestore, setDoc, updateDoc } from "firebase/firestore";
 import { Feather } from "@expo/vector-icons";
+import { useTheme } from "../context/ThemeContext";
 
 // Note: The publishable key should be set in your app's root component using StripeProvider,
 // not in this component directly.
@@ -36,6 +37,7 @@ const StripeCheckout = ({ watch, onSuccess, onCancel }) => {
   const [state, setState] = useState("");
   const [country, setCountry] = useState("United States");
   const [processing, setProcessing] = useState(false);
+  const { isDark } = useTheme();
 
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
 
@@ -237,6 +239,19 @@ const StripeCheckout = ({ watch, onSuccess, onCancel }) => {
     if (onCancel) onCancel();
   };
 
+  // Theme-based colors
+  const buttonBgColor = "#002D4E"; // Keep the primary button blue in both themes 
+  const modalBgColor = isDark ? '#222' : 'white';
+  const headerBgColor = isDark ? '#222' : 'white';
+  const textColor = isDark ? '#fff' : '#002D4E';
+  const secondaryTextColor = isDark ? '#aaa' : '#444';
+  const borderColor = isDark ? '#444' : '#f0f0f0';
+  const backButtonBgColor = isDark ? '#333' : '#f7f7f7';
+  const watchInfoBgColor = isDark ? '#333' : '#f9f9f9';
+  const inputBgColor = isDark ? '#333' : '#f5f5f7';
+  const inputBorderColor = isDark ? '#555' : '#ddd';
+  const placeholderTextColor = isDark ? '#777' : '#999';
+
   return (
     <>
       <Pressable style={styles.buyButton} onPress={() => setModalVisible(true)}>
@@ -250,20 +265,20 @@ const StripeCheckout = ({ watch, onSuccess, onCancel }) => {
         visible={modalVisible}
         onRequestClose={handleCloseModal}
       >
-        <SafeAreaView style={styles.centeredView}>
+        <SafeAreaView style={[styles.centeredView, { backgroundColor: 'rgba(0, 0, 0, 0.5)' }]}>
           <View style={styles.modalContainer}>
-            <View style={styles.modalView}>
+            <View style={[styles.modalView, { backgroundColor: modalBgColor }]}>
               {/* Header with back button */}
-              <View style={styles.modalHeader}>
+              <View style={[styles.modalHeader, { borderBottomColor: borderColor, backgroundColor: headerBgColor }]}>
                 <TouchableOpacity
-                  style={styles.backButton}
+                  style={[styles.backButton, { backgroundColor: backButtonBgColor }]}
                   onPress={handleCloseModal}
                   disabled={processing}
                   hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
                 >
-                  <Feather name="arrow-left" size={24} color="#002d4e" />
+                  <Feather name="arrow-left" size={24} color={textColor} />
                 </TouchableOpacity>
-                <Text style={styles.modalTitle}>Shipping Info</Text>
+                <Text style={[styles.modalTitle, { color: textColor }]}>Shipping Info</Text>
                 <View style={{ width: 44 }} />
               </View>
 
@@ -278,7 +293,7 @@ const StripeCheckout = ({ watch, onSuccess, onCancel }) => {
                   contentContainerStyle={styles.scrollViewContent}
                 >
                   {/* Watch info section with image */}
-                  <View style={styles.watchInfoContainer}>
+                  <View style={[styles.watchInfoContainer, { backgroundColor: watchInfoBgColor }]}>
                     {watchImages.length > 0 ? (
                       <Image
                         source={{ uri: watchImages[0] }}
@@ -291,93 +306,133 @@ const StripeCheckout = ({ watch, onSuccess, onCancel }) => {
                       </View>
                     )}
                     <View style={styles.watchDetails}>
-                      <Text style={styles.watchBrand}>{watch.brand}</Text>
-                      <Text style={styles.watchTitle}>{watch.model}</Text>
-                      <Text style={styles.priceText}>{formattedPrice}</Text>
+                      <Text style={[styles.watchBrand, { color: textColor }]}>{watch.brand}</Text>
+                      <Text style={[styles.watchTitle, { color: secondaryTextColor }]}>{watch.model}</Text>
+                      <Text style={[styles.priceText, { color: textColor }]}>{formattedPrice}</Text>
                     </View>
                   </View>
 
                   <View style={styles.formContainer}>
-                    <Text style={styles.inputLabel}>Full Name</Text>
+                    <Text style={[styles.inputLabel, { color: secondaryTextColor }]}>Full Name</Text>
                     <TextInput
-                      style={styles.input}
+                      style={[styles.input, { 
+                        backgroundColor: inputBgColor, 
+                        borderColor: inputBorderColor,
+                        color: textColor 
+                      }]}
                       value={name}
                       onChangeText={setName}
                       placeholder="Enter your full name"
+                      placeholderTextColor={placeholderTextColor}
                       editable={!processing}
                       autoCapitalize="words"
                     />
 
-                    <Text style={styles.inputLabel}>Email</Text>
+                    <Text style={[styles.inputLabel, { color: secondaryTextColor }]}>Email</Text>
                     <TextInput
-                      style={styles.input}
+                      style={[styles.input, { 
+                        backgroundColor: inputBgColor, 
+                        borderColor: inputBorderColor,
+                        color: textColor 
+                      }]}
                       value={email}
                       onChangeText={setEmail}
                       placeholder="Enter your email"
+                      placeholderTextColor={placeholderTextColor}
                       keyboardType="email-address"
                       autoCapitalize="none"
                       editable={!processing}
                     />
 
-                    <Text style={styles.inputLabel}>Phone Number</Text>
+                    <Text style={[styles.inputLabel, { color: secondaryTextColor }]}>Phone Number</Text>
                     <TextInput
-                      style={styles.input}
+                      style={[styles.input, { 
+                        backgroundColor: inputBgColor, 
+                        borderColor: inputBorderColor,
+                        color: textColor 
+                      }]}
                       value={phone}
                       onChangeText={setPhone}
                       placeholder="Enter your phone number"
+                      placeholderTextColor={placeholderTextColor}
                       keyboardType="phone-pad"
                       editable={!processing}
                     />
 
-                    <Text style={styles.inputLabel}>Street Address</Text>
+                    <Text style={[styles.inputLabel, { color: secondaryTextColor }]}>Street Address</Text>
                     <TextInput
-                      style={styles.input}
+                      style={[styles.input, { 
+                        backgroundColor: inputBgColor, 
+                        borderColor: inputBorderColor,
+                        color: textColor 
+                      }]}
                       value={address}
                       onChangeText={setAddress}
                       placeholder="Enter your street address"
+                      placeholderTextColor={placeholderTextColor}
                       editable={!processing}
                     />
 
-                    <Text style={styles.inputLabel}>City</Text>
+                    <Text style={[styles.inputLabel, { color: secondaryTextColor }]}>City</Text>
                     <TextInput
-                      style={styles.input}
+                      style={[styles.input, { 
+                        backgroundColor: inputBgColor, 
+                        borderColor: inputBorderColor,
+                        color: textColor 
+                      }]}
                       value={city}
                       onChangeText={setCity}
                       placeholder="Enter your city"
+                      placeholderTextColor={placeholderTextColor}
                       editable={!processing}
                     />
 
                     <View style={styles.rowContainer}>
                       <View style={styles.halfColumn}>
-                        <Text style={styles.inputLabel}>ZIP/Postal Code</Text>
+                        <Text style={[styles.inputLabel, { color: secondaryTextColor }]}>ZIP/Postal Code</Text>
                         <TextInput
-                          style={styles.input}
+                          style={[styles.input, { 
+                            backgroundColor: inputBgColor, 
+                            borderColor: inputBorderColor,
+                            color: textColor 
+                          }]}
                           value={zipCode}
                           onChangeText={setZipCode}
                           placeholder="ZIP Code"
+                          placeholderTextColor={placeholderTextColor}
                           keyboardType="numeric"
                           editable={!processing}
                         />
                       </View>
 
                       <View style={styles.halfColumn}>
-                        <Text style={styles.inputLabel}>State</Text>
+                        <Text style={[styles.inputLabel, { color: secondaryTextColor }]}>State</Text>
                         <TextInput
-                          style={styles.input}
+                          style={[styles.input, { 
+                            backgroundColor: inputBgColor, 
+                            borderColor: inputBorderColor,
+                            color: textColor 
+                          }]}
                           value={state}
                           onChangeText={setState}
                           placeholder="State"
+                          placeholderTextColor={placeholderTextColor}
                           editable={!processing}
                         />
                       </View>
                     </View>
 
-                    <Text style={styles.inputLabel}>Country</Text>
+                    <Text style={[styles.inputLabel, { color: secondaryTextColor }]}>Country</Text>
                     <TextInput
-                      style={styles.input}
+                      style={[styles.input, { 
+                        backgroundColor: inputBgColor, 
+                        borderColor: inputBorderColor,
+                        color: textColor 
+                      }]}
                       value={country}
                       onChangeText={setCountry}
                       placeholder="Country"
+                      placeholderTextColor={placeholderTextColor}
                       editable={!processing}
                     />
 
@@ -388,11 +443,14 @@ const StripeCheckout = ({ watch, onSuccess, onCancel }) => {
               </KeyboardAvoidingView>
 
               {/* Fixed footer with pay button */}
-              <View style={styles.modalFooter}>
+              <View style={[styles.modalFooter, { 
+                borderTopColor: borderColor,
+                backgroundColor: modalBgColor 
+              }]}>
                 {processing ? (
                   <View style={styles.processingContainer}>
-                    <ActivityIndicator size="large" color="#002D4E" />
-                    <Text style={styles.processingText}>
+                    <ActivityIndicator size="large" color={textColor} />
+                    <Text style={[styles.processingText, { color: textColor }]}>
                       Processing your payment...
                     </Text>
                   </View>

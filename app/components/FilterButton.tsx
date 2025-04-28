@@ -2,16 +2,19 @@ import React, { useState, useRef, useEffect, memo } from 'react';
 import { View, TouchableOpacity, Text, StyleSheet, Animated, Dimensions, Platform, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SortOption } from '../context/SortContext';
+import { useTheme } from '../context/ThemeContext';
 
 interface FilterDropdownProps {
-  isVisible: boolean;
+  isVisible?: boolean;
+  currentSelection?: SortOption;
   onSelect: (option: SortOption) => void;
   onClose: () => void;
   filterButtonLayout?: { x: number; y: number; width: number; height: number };
 }
 
 function FilterDropdownComponent({ 
-  isVisible, 
+  isVisible = true, 
+  currentSelection,
   onSelect, 
   onClose,
   filterButtonLayout 
@@ -19,6 +22,7 @@ function FilterDropdownComponent({
   const dropdownAnim = useRef(new Animated.Value(0)).current;
   const backdropAnim = useRef(new Animated.Value(0)).current;
   const windowHeight = Dimensions.get('window').height;
+  const { isDark } = useTheme();
   
   useEffect(() => {
     if (isVisible) {
@@ -88,6 +92,19 @@ function FilterDropdownComponent({
     top: filterButtonLayout ? filterButtonLayout.y + filterButtonLayout.height + 4 : 66,
     left: filterButtonLayout ? filterButtonLayout.x : 16
   };
+  
+  // Theme-specific colors
+  const backgroundColor = isDark ? '#222' : '#fff';
+  const textColor = isDark ? '#fff' : '#002d4e';
+  const borderColor = isDark ? '#444' : '#f0f0f0';
+  const iconColor = isDark ? '#fff' : '#002d4e';
+  const clearBgColor = isDark ? '#333' : '#f9f9f9';
+  const clearTextColor = isDark ? '#aaa' : '#777';
+  const clearIconColor = isDark ? '#aaa' : '#777';
+
+  // Helper to determine if an option is currently selected
+  const isSelected = (option: SortOption | null) => currentSelection === option;
+  const selectedItemBgColor = isDark ? '#333' : '#f0f8ff';
 
   return (
     <View style={styles.container}>
@@ -107,62 +124,95 @@ function FilterDropdownComponent({
           styles.dropdown, 
           animatedStyle,
           // Apply dynamic positioning
-          { top: dropdownPosition.top, left: dropdownPosition.left }
+          { 
+            top: dropdownPosition.top, 
+            left: dropdownPosition.left,
+            backgroundColor: backgroundColor,
+            borderColor: borderColor
+          }
         ]}
       >
-        <View style={styles.dropdownHeader}>
-          <Text style={styles.dropdownTitle}>Sort Options</Text>
+        <View style={[styles.dropdownHeader, { borderBottomColor: borderColor }]}>
+          <Text style={[styles.dropdownTitle, { color: textColor }]}>Sort Options</Text>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <Ionicons name="close" size={22} color="#777" />
+            <Ionicons name="close" size={22} color={clearTextColor} />
           </TouchableOpacity>
         </View>
 
         <TouchableOpacity 
           onPress={() => handleSelectOption("lowToHigh")} 
-          style={styles.dropdownItem} 
+          style={[
+            styles.dropdownItem, 
+            { borderBottomColor: borderColor },
+            isSelected("lowToHigh") && { backgroundColor: selectedItemBgColor }
+          ]} 
           activeOpacity={0.7}
           accessible={true}
           accessibilityLabel="Sort price low to high"
           accessibilityRole="button"
         >
-          <Ionicons name="arrow-up" size={18} color="#002d4e" style={styles.itemIcon} />
-          <Text style={styles.dropdownText}>Low to High</Text>
+          <Ionicons name="arrow-up" size={18} color={iconColor} style={styles.itemIcon} />
+          <Text style={[styles.dropdownText, { color: textColor }]}>Low to High</Text>
+          {isSelected("lowToHigh") && (
+            <Ionicons name="checkmark" size={18} color={iconColor} style={styles.checkmark} />
+          )}
         </TouchableOpacity>
         
         <TouchableOpacity 
           onPress={() => handleSelectOption("highToLow")} 
-          style={styles.dropdownItem} 
+          style={[
+            styles.dropdownItem, 
+            { borderBottomColor: borderColor },
+            isSelected("highToLow") && { backgroundColor: selectedItemBgColor }
+          ]} 
           activeOpacity={0.7}
           accessible={true}
           accessibilityLabel="Sort price high to low"
           accessibilityRole="button"
         >
-          <Ionicons name="arrow-down" size={18} color="#002d4e" style={styles.itemIcon} />
-          <Text style={styles.dropdownText}>High to Low</Text>
+          <Ionicons name="arrow-down" size={18} color={iconColor} style={styles.itemIcon} />
+          <Text style={[styles.dropdownText, { color: textColor }]}>High to Low</Text>
+          {isSelected("highToLow") && (
+            <Ionicons name="checkmark" size={18} color={iconColor} style={styles.checkmark} />
+          )}
         </TouchableOpacity>
 
         <TouchableOpacity 
           onPress={() => handleSelectOption("mostLiked")} 
-          style={styles.dropdownItem} 
+          style={[
+            styles.dropdownItem, 
+            { borderBottomColor: borderColor },
+            isSelected("mostLiked") && { backgroundColor: selectedItemBgColor }
+          ]} 
           activeOpacity={0.7}
           accessible={true}
           accessibilityLabel="Sort by most liked"
           accessibilityRole="button"
         >
-          <Ionicons name="trending-up" size={18} color="#002d4e" style={styles.itemIcon} />
-          <Text style={styles.dropdownText}>Most Liked</Text>
+          <Ionicons name="trending-up" size={18} color={iconColor} style={styles.itemIcon} />
+          <Text style={[styles.dropdownText, { color: textColor }]}>Most Liked</Text>
+          {isSelected("mostLiked") && (
+            <Ionicons name="checkmark" size={18} color={iconColor} style={styles.checkmark} />
+          )}
         </TouchableOpacity>
         
         <TouchableOpacity 
           onPress={() => handleSelectOption(null)} 
-          style={[styles.dropdownItem, styles.clearButton]} 
+          style={[
+            styles.dropdownItem, 
+            { backgroundColor: clearBgColor },
+            isSelected(null) && { backgroundColor: selectedItemBgColor }
+          ]} 
           activeOpacity={0.7}
           accessible={true}
           accessibilityLabel="Clear filters"
           accessibilityRole="button"
         >
-          <Ionicons name="refresh" size={18} color="#777" style={styles.itemIcon} />
-          <Text style={[styles.dropdownText, styles.clearText]}>Clear Filter</Text>
+          <Ionicons name="refresh" size={18} color={clearIconColor} style={styles.itemIcon} />
+          <Text style={[styles.dropdownText, { color: clearTextColor }]}>Clear Filter</Text>
+          {isSelected(null) && (
+            <Ionicons name="checkmark" size={18} color={clearIconColor} style={styles.checkmark} />
+          )}
         </TouchableOpacity>
       </Animated.View>
     </View>
@@ -199,10 +249,10 @@ const styles = StyleSheet.create({
     position: 'absolute',
     // Position is set dynamically
     width: 250,
-    backgroundColor: '#fff',
     borderRadius: 12,
     overflow: 'hidden',
     zIndex: 1002,
+    borderWidth: 1,
     ...Platform.select({
       ios: {
         shadowColor: '#000',
@@ -222,12 +272,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
   },
   dropdownTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#002d4e',
   },
   closeButton: {
     padding: 4,
@@ -238,21 +286,19 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
   },
   itemIcon: {
     marginRight: 12,
   },
   dropdownText: {
     fontSize: 16,
-    color: '#002d4e',
     fontWeight: '500',
+    flex: 1,
   },
-  clearButton: {
-    borderBottomWidth: 0,
-    backgroundColor: '#f9f9f9',
-  },
-  clearText: {
-    color: '#777',
-  },
+  checkmark: {
+    marginLeft: 'auto',
+  }
 });
+
+// Export as default for backward compatibility
+export default FilterDropdown;

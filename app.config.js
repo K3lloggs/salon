@@ -7,7 +7,7 @@ export default {
     scheme: 'watchsalon', // <-- Required linking scheme for production builds
     icon: "./assets/images/shreve_circle.png",
     orientation: "portrait",
-    version: "1.1.6",  // Version number
+    version: "1.1.7",  // Version number
     extra: {
       FIREBASE_API_KEY: process.env.FIREBASE_API_KEY,
       FIREBASE_AUTH_DOMAIN: process.env.FIREBASE_AUTH_DOMAIN,

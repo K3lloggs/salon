@@ -22,6 +22,7 @@ import { LikeList } from "../components/LikeList";
 import { useWatches } from "../hooks/useWatches";
 import StripeCheckout from "../components/StripeCheckout";
 import Colors from '../../constants/Colors';
+import { useTheme } from "../context/ThemeContext";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -36,14 +37,16 @@ const preloadComponentCache = () => {
 const SpecRow = React.memo(({ label, value }: {
   label: string;
   value: string | null | undefined;
-}) =>
-  value ? (
-    <View style={styles.specRow}>
-      <Text style={styles.specLabel}>{label}</Text>
-      <Text style={styles.specValue}>{value}</Text>
+}) => {
+  const { isDark } = useTheme();
+  
+  return value ? (
+    <View style={[styles.specRow, { borderBottomColor: isDark ? '#333' : '#f0f0f0' }]}>
+      <Text style={[styles.specLabel, { color: isDark ? '#aaa' : '#666' }]}>{label}</Text>
+      <Text style={[styles.specValue, { color: isDark ? '#fff' : '#002d4e' }]}>{value}</Text>
     </View>
-  ) : null
-);
+  ) : null;
+});
 
 export default function DetailScreen() {
   const params = useLocalSearchParams();
@@ -54,6 +57,7 @@ export default function DetailScreen() {
   const [contentReady, setContentReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const { isDark } = useTheme();
 
   // Preload cache
   useEffect(() => {
@@ -161,22 +165,27 @@ export default function DetailScreen() {
     ];
   }, [watch]);
 
+  // Set background and text colors based on theme
+  const bgColor = isDark ? '#121212' : Colors.headerBg;
+  const textColor = isDark ? '#fff' : '#002d4e';
+  const secondaryTextColor = isDark ? '#aaa' : '#666';
+
   // Use a full-page loading approach to avoid content jumping
   if (loading || !watches || watches.length === 0 || !watch || !contentReady) {
     return (
-      <View style={[styles.container, { backgroundColor: Colors.headerBg }]}>
+      <View style={[styles.container, { backgroundColor: bgColor }]}>
         {/* IMPORTANT: Custom status bar background */}
-        <View style={styles.statusBarFill} />
+        <View style={[styles.statusBarFill, { backgroundColor: bgColor }]} />
         
         <FixedHeader showBackButton title="" />
         <View style={styles.loadingContainer}>
           {error ? (
             <View>
               <Text style={{ color: 'red', marginBottom: 10 }}>{error}</Text>
-              <Text>Returning to previous screen...</Text>
+              <Text style={{ color: textColor }}>Returning to previous screen...</Text>
             </View>
           ) : (
-            <ActivityIndicator size="large" color="#002d4e" />
+            <ActivityIndicator size="large" color={isDark ? "#81b0ff" : "#002d4e"} />
           )}
         </View>
       </View>
@@ -184,9 +193,9 @@ export default function DetailScreen() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: Colors.headerBg }]}>
+    <View style={[styles.container, { backgroundColor: bgColor }]}>
       {/* IMPORTANT: Custom status bar background */}
-      <View style={styles.statusBarFill} />
+      <View style={[styles.statusBarFill, { backgroundColor: bgColor }]} />
       
       <FixedHeader showBackButton watch={watch} />
 
@@ -201,17 +210,17 @@ export default function DetailScreen() {
         >
           <SecondaryCard watch={watch} />
 
-          <BlurView intensity={30} tint="light" style={styles.detailsPanel}>
+          <BlurView intensity={30} tint={isDark ? "dark" : "light"} style={styles.detailsPanel}>
             <View style={styles.headerSection}>
               {/* Brand & LikeList Container with original positioning */}
               <View style={styles.brandLikeContainer}>
                 <View style={styles.brandContainer}>
                   {watch.brand === "Vacheron Constantin" ? (
-                    <Text style={styles.brandSmaller} numberOfLines={1} ellipsizeMode="tail">
+                    <Text style={[styles.brandSmaller, { color: textColor }]} numberOfLines={1} ellipsizeMode="tail">
                       {watch.brand}
                     </Text>
                   ) : (
-                    <Text style={styles.brand} numberOfLines={1} ellipsizeMode="tail">
+                    <Text style={[styles.brand, { color: textColor }]} numberOfLines={1} ellipsizeMode="tail">
                       {watch.brand || " "}
                     </Text>
                   )}
@@ -222,15 +231,15 @@ export default function DetailScreen() {
                 </View>
               </View>
 
-              <Text style={styles.model}>{watch.model || " "}</Text>
+              <Text style={[styles.model, { color: textColor }]}>{watch.model || " "}</Text>
               <View style={styles.infoContainer}>
                 {watch.referenceNumber && (
-                  <Text style={styles.referenceNumber}>
+                  <Text style={[styles.referenceNumber, { color: secondaryTextColor }]}>
                     Ref. {watch.referenceNumber}
                   </Text>
                 )}
                 {watch.sku && (
-                  <Text style={styles.referenceNumber}>
+                  <Text style={[styles.referenceNumber, { color: secondaryTextColor }]}>
                     SKU: {watch.sku}
                   </Text>
                 )}
@@ -243,12 +252,12 @@ export default function DetailScreen() {
                   {/* Fixed MSRP display */}
                   {watch.msrp ? (
                     <View style={styles.msrpContainer}>
-                      <Text style={styles.msrpLabel}>MSRP: </Text>
-                      <Text style={styles.msrpValue}>${formattedMSRP}</Text>
+                      <Text style={[styles.msrpLabel, { color: textColor }]}>MSRP: </Text>
+                      <Text style={[styles.msrpValue, { color: textColor }]}>${formattedMSRP}</Text>
                     </View>
                   ) : null}
                   {/* Fixed price display */}
-                  <Text style={styles.price}>${formattedPrice}</Text>
+                  <Text style={[styles.price, { color: textColor }]}>${formattedPrice}</Text>
                 </View>
               </View>
             </View>
@@ -271,20 +280,23 @@ export default function DetailScreen() {
 
           {watch.description && (
             <View style={styles.descriptionContainer}>
-              <Text style={styles.descriptionLabel}>Description</Text>
-              <Text style={styles.descriptionText}>{watch.description}</Text>
+              <Text style={[styles.descriptionLabel, { color: textColor }]}>Description</Text>
+              <Text style={[styles.descriptionText, { color: textColor }]}>{watch.description}</Text>
             </View>
           )}
 
           <View style={styles.footerContainer}>
-            <Text style={styles.footerText}>
+            <Text style={[styles.footerText, { color: textColor }]}>
               Shreve, Crump & Low • Horological Excellence Since 1796
             </Text>
           </View>
         </ScrollView>
       </Animated.View>
 
-      <View style={styles.bottomContainer}>
+      <View style={[styles.bottomContainer, { 
+        backgroundColor: isDark ? '#222' : '#fff',
+        borderTopColor: isDark ? '#333' : '#eee' 
+      }]}>
         {purchaseCompleted || watch.sold ? (
           <View style={[styles.stripeButton, styles.soldButton]}>
             <Text style={styles.stripeButtonText}>Sold</Text>

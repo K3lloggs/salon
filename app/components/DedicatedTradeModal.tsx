@@ -18,6 +18,7 @@ import { Watch } from '../types/Watch';
 import { collection, addDoc } from 'firebase/firestore';
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { db } from '../../firebaseConfig';
+import { useTheme } from '../context/ThemeContext';
 
 interface FormData {
   reference: string;
@@ -38,6 +39,7 @@ const DedicatedTradeModal: React.FC<DedicatedTradeModalProps> = ({
   onClose,
   watch,
 }) => {
+  const { isDark } = useTheme();
   const [formData, setFormData] = useState<FormData>({
     reference: '',
     phoneNumber: '',
@@ -46,6 +48,20 @@ const DedicatedTradeModal: React.FC<DedicatedTradeModalProps> = ({
     tradeDetails: '',
   });
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  
+  // Theme colors
+  const backgroundColor = isDark ? '#1C1C1E' : '#fff';
+  const textColor = isDark ? '#FFF' : '#002d4e';
+  const secondaryTextColor = isDark ? '#999' : '#666666';
+  const borderColor = isDark ? '#444' : '#E0E0E0';
+  const inputBgColor = isDark ? '#2C2C2E' : '#fff';
+  const buttonBgColor = isDark ? '#0A84FF' : '#002d4e';
+  const placeholderColor = isDark ? '#888' : '#888';
+  const cardBgColor = isDark ? '#2C2C2E' : '#f9f9f9';
+  const dragHandleColor = isDark ? '#555' : '#ccc';
+  const photoButtonBgColor = isDark ? '#2C2C2E' : '#fff';
+  const headerBorderColor = isDark ? '#444' : '#E0E0E0';
+  const iconColor = isDark ? '#81b0ff' : '#002d4e';
   
   const updateField = useCallback(
     (field: keyof FormData, value: string | null) => {
@@ -187,14 +203,14 @@ const DedicatedTradeModal: React.FC<DedicatedTradeModalProps> = ({
     if (!watch) return null;
 
     let watchImageUri;
-    if (Array.isArray(watch.images) && watch.images.length > 0) {
-      watchImageUri = watch.images[0];
+    if (Array.isArray(watch.image) && watch.image.length > 0) {
+      watchImageUri = watch.image[0];
     } else if (watch.image && typeof watch.image === 'string') {
       watchImageUri = watch.image;
     }
 
     return (
-      <View style={styles.watchInfoContainer}>
+      <View style={[styles.watchInfoContainer, { backgroundColor: cardBgColor, borderColor: borderColor }]}>
         {watchImageUri && (
           <Image 
             source={{ uri: watchImageUri }} 
@@ -203,15 +219,15 @@ const DedicatedTradeModal: React.FC<DedicatedTradeModalProps> = ({
           />
         )}
         <View style={styles.watchDetails}>
-          <Text style={styles.watchBrand}>{watch.brand}</Text>
-          <Text style={styles.watchTitle}>{watch.model}</Text>
+          <Text style={[styles.watchBrand, { color: textColor }]}>{watch.brand}</Text>
+          <Text style={[styles.watchTitle, { color: isDark ? '#CCC' : '#444' }]}>{watch.model}</Text>
           {watch.price && (
-            <Text style={styles.priceText}>${watch.price.toLocaleString()}</Text>
+            <Text style={[styles.priceText, { color: textColor }]}>${watch.price.toLocaleString()}</Text>
           )}
         </View>
       </View>
     );
-  }, [watch]);
+  }, [watch, cardBgColor, borderColor, textColor, isDark]);
 
   return (
     <Modal
@@ -231,13 +247,13 @@ const DedicatedTradeModal: React.FC<DedicatedTradeModalProps> = ({
       statusBarTranslucent
       useNativeDriver={true}        // Enable native driver for smoother animations
     >
-      <View style={styles.modalContainer}>
+      <View style={[styles.modalContainer, { backgroundColor }]}>
         <View style={styles.dragHandleContainer}>
-          <View style={styles.dragHandle} />
+          <View style={[styles.dragHandle, { backgroundColor: dragHandleColor }]} />
         </View>
 
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Trade Request</Text>
+        <View style={[styles.header, { borderBottomColor: headerBorderColor }]}>
+          <Text style={[styles.headerTitle, { color: textColor }]}>Trade Request</Text>
         </View>
 
         <ScrollView 
@@ -251,49 +267,78 @@ const DedicatedTradeModal: React.FC<DedicatedTradeModalProps> = ({
           <View style={styles.formSection}>
             <View style={styles.rowContainer}>
               <View style={styles.inputWrap}>
-                <Text style={styles.label}>Reference Number</Text>
+                <Text style={[styles.label, { color: textColor }]}>Reference Number</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[
+                    styles.input, 
+                    { 
+                      backgroundColor: inputBgColor,
+                      color: textColor,
+                      borderColor: borderColor
+                    }
+                  ]}
                   value={formData.reference}
                   onChangeText={(text) => updateField('reference', text)}
                   placeholder="Ref Number"
-                  placeholderTextColor="#888"
+                  placeholderTextColor={placeholderColor}
                 />
               </View>
               <View style={[styles.inputWrap, { marginLeft: 12 }]}>
-                <Text style={styles.label}>Phone Number</Text>
+                <Text style={[styles.label, { color: textColor }]}>Phone Number</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[
+                    styles.input, 
+                    { 
+                      backgroundColor: inputBgColor,
+                      color: textColor,
+                      borderColor: borderColor
+                    }
+                  ]}
                   value={formData.phoneNumber}
                   onChangeText={(text) => updateField('phoneNumber', text)}
                   placeholder="Phone Number"
-                  placeholderTextColor="#888"
+                  placeholderTextColor={placeholderColor}
                   keyboardType="phone-pad"
                 />
               </View>
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Email Address</Text>
+              <Text style={[styles.label, { color: textColor }]}>Email Address</Text>
               <TextInput
-                style={styles.input}
+                style={[
+                  styles.input, 
+                  { 
+                    backgroundColor: inputBgColor,
+                    color: textColor,
+                    borderColor: borderColor
+                  }
+                ]}
                 value={formData.email}
                 onChangeText={(text) => updateField('email', text)}
                 placeholder="email@example.com"
-                placeholderTextColor="#888"
+                placeholderTextColor={placeholderColor}
                 keyboardType="email-address"
                 autoCapitalize="none"
               />
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Trade Details</Text>
+              <Text style={[styles.label, { color: textColor }]}>Trade Details</Text>
               <TextInput
-                style={[styles.input, styles.textArea]}
+                style={[
+                  styles.input, 
+                  styles.textArea,
+                  { 
+                    backgroundColor: inputBgColor,
+                    color: textColor,
+                    borderColor: borderColor
+                  }
+                ]}
                 value={formData.tradeDetails}
                 onChangeText={(text) => updateField('tradeDetails', text)}
                 placeholder="Describe the watch you'd like to trade (brand, model, condition)"
-                placeholderTextColor="#888"
+                placeholderTextColor={placeholderColor}
                 multiline
                 numberOfLines={4}
                 textAlignVertical="top"
@@ -301,7 +346,7 @@ const DedicatedTradeModal: React.FC<DedicatedTradeModalProps> = ({
             </View>
 
             <View style={styles.photoSection}>
-              <Text style={styles.label}>Watch Photos</Text>
+              <Text style={[styles.label, { color: textColor }]}>Watch Photos</Text>
               {formData.photo ? (
                 <View style={styles.photoPreviewContainer}>
                   <Image 
@@ -318,22 +363,34 @@ const DedicatedTradeModal: React.FC<DedicatedTradeModalProps> = ({
               ) : (
                 <View style={styles.photoButtonsContainer}>
                   <TouchableOpacity 
-                    style={styles.photoButton} 
+                    style={[
+                      styles.photoButton, 
+                      { 
+                        backgroundColor: photoButtonBgColor,
+                        borderColor: borderColor
+                      }
+                    ]} 
                     onPress={takePhoto}
                   >
-                    <Ionicons name="camera-outline" size={28} color="#002d4e" />
-                    <Text style={styles.photoButtonText}>Take Photo</Text>
+                    <Ionicons name="camera-outline" size={28} color={iconColor} />
+                    <Text style={[styles.photoButtonText, { color: textColor }]}>Take Photo</Text>
                   </TouchableOpacity>
                   <TouchableOpacity 
-                    style={styles.photoButton} 
+                    style={[
+                      styles.photoButton, 
+                      { 
+                        backgroundColor: photoButtonBgColor,
+                        borderColor: borderColor
+                      }
+                    ]} 
                     onPress={pickImage}
                   >
-                    <Ionicons name="image-outline" size={28} color="#002d4e" />
-                    <Text style={styles.photoButtonText}>Upload Photo</Text>
+                    <Ionicons name="image-outline" size={28} color={iconColor} />
+                    <Text style={[styles.photoButtonText, { color: textColor }]}>Upload Photo</Text>
                   </TouchableOpacity>
                 </View>
               )}
-              <Text style={styles.helperText}>
+              <Text style={[styles.helperText, { color: secondaryTextColor }]}>
                 {formData.photo 
                   ? "Tap the X to change the photo" 
                   : "A clear photo helps us with your valuation"}
@@ -344,9 +401,13 @@ const DedicatedTradeModal: React.FC<DedicatedTradeModalProps> = ({
           </View>
         </ScrollView>
         
-        <View style={styles.buttonContainer}>
+        <View style={[styles.buttonContainer, { borderTopColor: borderColor }]}>
           <TouchableOpacity
-            style={[styles.submitButton, isSubmitting && styles.buttonDisabled]}
+            style={[
+              styles.submitButton, 
+              { backgroundColor: buttonBgColor },
+              isSubmitting && styles.buttonDisabled
+            ]}
             onPress={handleSubmit}
             disabled={isSubmitting}
           >
@@ -372,7 +433,6 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContainer: {
-    backgroundColor: '#fff',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     overflow: 'hidden',
@@ -382,25 +442,20 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     paddingVertical: 12,
-    backgroundColor: '#fff',
   },
   dragHandle: {
     width: 36,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#ccc',
   },
   header: {
     paddingHorizontal: 20,
     paddingBottom: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
-    backgroundColor: '#fff',
   },
   headerTitle: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#002d4e',
   },
   scrollView: {
     maxHeight: '75%',
@@ -427,18 +482,14 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#002d4e',
     marginBottom: 6,
   },
   input: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
-    color: '#333',
     borderWidth: 1,
-    borderColor: '#E0E0E0',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
@@ -466,13 +517,11 @@ const styles = StyleSheet.create({
   },
   photoButton: {
     flex: 0.48,
-    backgroundColor: '#fff',
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#E0E0E0',
     ...Platform.select({
       ios: {
         shadowColor: '#002d4e',
@@ -486,7 +535,6 @@ const styles = StyleSheet.create({
     }),
   },
   photoButtonText: {
-    color: '#002d4e',
     marginTop: 6,
     fontSize: 14,
     fontWeight: '600',
@@ -522,7 +570,6 @@ const styles = StyleSheet.create({
   },
   helperText: {
     fontSize: 12,
-    color: '#666666',
     marginTop: 8,
     textAlign: 'center',
   },
@@ -532,13 +579,10 @@ const styles = StyleSheet.create({
   buttonContainer: {
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: '#fff',
     borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
     width: '100%',
   },
   submitButton: {
-    backgroundColor: '#002d4e',
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
@@ -567,9 +611,10 @@ const styles = StyleSheet.create({
   watchInfoContainer: {
     flexDirection: 'row',
     padding: 20,
-    backgroundColor: '#f9f9f9',
     marginBottom: 20,
     alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 12,
   },
   watchImage: {
     width: 100,
@@ -584,20 +629,17 @@ const styles = StyleSheet.create({
   watchBrand: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#002d4e',
     marginBottom: 4,
     letterSpacing: 0.3,
   },
   watchTitle: {
     fontSize: 16,
-    color: '#444',
     marginBottom: 8,
     letterSpacing: 0.3,
   },
   priceText: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#002d4e',
     letterSpacing: 0.3,
   },
 });

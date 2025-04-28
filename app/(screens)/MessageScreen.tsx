@@ -18,7 +18,8 @@ import {
 import Modal from 'react-native-modal';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../firebaseConfig';
-import { BlurView } from 'expo-blur'; // Add this import if not already using expo-blur
+import { BlurView } from 'expo-blur';
+import { useTheme } from '../context/ThemeContext';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -35,6 +36,7 @@ interface CustomInputProps {
   multiline?: boolean;
   style?: any;
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
+  isDark?: boolean;
 }
 
 const CustomInput: React.FC<CustomInputProps> = ({
@@ -45,12 +47,21 @@ const CustomInput: React.FC<CustomInputProps> = ({
   multiline = false,
   style,
   autoCapitalize = 'none',
+  isDark = false,
 }) => (
   <View style={styles.inputWrapper}>
     <TextInput
-      style={[styles.input, style]}
+      style={[
+        styles.input, 
+        { 
+          color: isDark ? '#FFF' : '#333333',
+          backgroundColor: isDark ? '#2C2C2E' : '#FFFFFF',
+          borderColor: isDark ? '#444' : '#E0E0E0'
+        }, 
+        style
+      ]}
       placeholder={placeholder}
-      placeholderTextColor="#8E8E93"
+      placeholderTextColor={isDark ? '#999' : '#8E8E93'}
       value={value}
       onChangeText={onChangeText}
       keyboardType={keyboardType}
@@ -66,12 +77,23 @@ const CustomInput: React.FC<CustomInputProps> = ({
 );
 
 const MessageScreen: React.FC<MessageScreenProps> = ({ visible, onClose }) => {
+  const { isDark } = useTheme();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
+
+  // Theme-specific colors
+  const backgroundColor = isDark ? '#1C1C1E' : '#F2F3F5';
+  const cardBgColor = isDark ? '#2C2C2E' : '#FFFFFF';
+  const textColor = isDark ? '#FFF' : '#002d4e';
+  const secondaryTextColor = isDark ? '#999' : '#666666';
+  const borderColor = isDark ? '#444' : '#E5E5E5';
+  const buttonBgColor = isDark ? '#0A84FF' : '#002d4e';
+  const dragHandleColor = isDark ? '#555' : '#CCCCCC';
+  const blurTint = isDark ? 'dark' : 'light';
 
   const isValidEmail = (email: string) => /\S+@\S+\.\S+/.test(email);
 
@@ -147,24 +169,24 @@ const MessageScreen: React.FC<MessageScreenProps> = ({ visible, onClose }) => {
       useNativeDriver
       deviceHeight={SCREEN_HEIGHT}
     >
-      <BlurView intensity={10} tint="light" style={styles.blurContainer}>
-        <View style={styles.modalContainer}>
+      <BlurView intensity={10} tint={blurTint} style={styles.blurContainer}>
+        <View style={[styles.modalContainer, { backgroundColor }]}>
           {/* Drag Handle */}
           <TouchableWithoutFeedback onPress={resetAndClose}>
             <View style={styles.dragHandleContainer}>
-              <View style={styles.dragHandle} />
+              <View style={[styles.dragHandle, { backgroundColor: dragHandleColor }]} />
             </View>
           </TouchableWithoutFeedback>
 
           {/* Header */}
-          <View style={styles.header}>
-            <Text style={styles.headerTitle}>Send Message</Text>
+          <View style={[styles.header, { borderBottomColor: borderColor }]}>
+            <Text style={[styles.headerTitle, { color: textColor }]}>Send Message</Text>
             <TouchableOpacity 
               style={styles.closeButton} 
               onPress={resetAndClose}
               hitSlop={{top: 15, bottom: 15, left: 15, right: 15}}
             >
-              <Text style={styles.closeButtonText}>✕</Text>
+              <Text style={[styles.closeButtonText, { color: secondaryTextColor }]}>✕</Text>
             </TouchableOpacity>
           </View>
 
@@ -181,6 +203,7 @@ const MessageScreen: React.FC<MessageScreenProps> = ({ visible, onClose }) => {
                   value={name}
                   onChangeText={setName}
                   autoCapitalize="words"
+                  isDark={isDark}
                 />
                 <CustomInput
                   placeholder="Email Address"
@@ -188,17 +211,20 @@ const MessageScreen: React.FC<MessageScreenProps> = ({ visible, onClose }) => {
                   onChangeText={setEmail}
                   keyboardType="email-address"
                   autoCapitalize="none"
+                  isDark={isDark}
                 />
                 <CustomInput
                   placeholder="Phone Number"
                   value={phone}
                   onChangeText={setPhone}
                   keyboardType="phone-pad"
+                  isDark={isDark}
                 />
                 <CustomInput
                   placeholder="Subject"
                   value={subject}
                   onChangeText={setSubject}
+                  isDark={isDark}
                 />
                 <CustomInput
                   placeholder="Your Message"
@@ -206,15 +232,20 @@ const MessageScreen: React.FC<MessageScreenProps> = ({ visible, onClose }) => {
                   onChangeText={setMessage}
                   multiline
                   style={styles.messageInput}
+                  isDark={isDark}
                 />
               </View>
             </TouchableWithoutFeedback>
 
             {/* Fixed Button Container */}
             <SafeAreaView style={styles.buttonSafeArea}>
-              <View style={styles.buttonContainer}>
+              <View style={[styles.buttonContainer, { borderTopColor: borderColor }]}>
                 <TouchableOpacity
-                  style={[styles.sendButton, sending && styles.disabledButton]}
+                  style={[
+                    styles.sendButton, 
+                    { backgroundColor: buttonBgColor },
+                    sending && styles.disabledButton
+                  ]}
                   onPress={handleSend}
                   disabled={sending}
                   accessibilityRole="button"
@@ -246,7 +277,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   modalContainer: {
-    backgroundColor: '#F2F3F5', // Light grey background
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: SCREEN_HEIGHT * 0.85,
@@ -260,14 +290,12 @@ const styles = StyleSheet.create({
     width: 40,
     height: 5,
     borderRadius: 3,
-    backgroundColor: '#CCCCCC',
   },
   header: {
     flexDirection: 'row',
     paddingHorizontal: 24,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E5E5',
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
@@ -275,7 +303,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#002d4e',
     letterSpacing: 0.5,
   },
   closeButton: {
@@ -289,7 +316,6 @@ const styles = StyleSheet.create({
   },
   closeButtonText: {
     fontSize: 22,
-    color: '#666666',
   },
   keyboardAvoiding: {
     flexGrow: 1,
@@ -300,11 +326,8 @@ const styles = StyleSheet.create({
   },
   inputWrapper: {
     marginBottom: 16,
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
@@ -320,8 +343,8 @@ const styles = StyleSheet.create({
   input: {
     padding: 16,
     fontSize: 16,
-    color: '#333333',
-    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderRadius: 12,
   },
   messageInput: {
     height: 100,
@@ -335,10 +358,8 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     backgroundColor: 'transparent',
     borderTopWidth: 1,
-    borderTopColor: '#E5E5E5',
   },
   sendButton: {
-    backgroundColor: '#002d4e',
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
