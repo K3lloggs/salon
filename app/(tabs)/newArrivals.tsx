@@ -1,4 +1,10 @@
-import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import React, {
+  useState,
+  useMemo,
+  useCallback,
+  useRef,
+  useEffect,
+} from 'react';
 import {
   View,
   FlatList,
@@ -7,7 +13,7 @@ import {
   RefreshControl,
   Platform,
   InteractionManager,
-  Dimensions
+  Dimensions,
 } from 'react-native';
 import { FixedHeader } from '../components/FixedHeader';
 import { WatchCard } from '../components/WatchCard';
@@ -17,168 +23,135 @@ import { useSortContext } from '../context/SortContext';
 import { Watch } from '../types/Watch';
 import { useThemedStyles } from '../hooks/useThemedStyles';
 
-const ITEM_HEIGHT = 420; // Adjusted based on card dimensions and margins
-
-// Create a memoized WatchCard to prevent unnecessary re-renders
+const ITEM_HEIGHT = 420;
 const MemoizedWatchCard = React.memo(WatchCard);
+
+/*───────────────────────────────────────────────────────────────
+  Cast ANY “date-ish” value to a millisecond number.
+  Works with string | number | Date | Firestore.Timestamp | undefined.
+  Keeping the unsafe stuff **inside** this helper avoids TS 2769 errors.
+────────────────────────────────────────────────────────────────*/
+const toTimestamp = (d: unknown): number => {
+  if (!d) return 0;
+
+  if (d instanceof Date) return d.getTime();
+
+  // Firestore Timestamp { seconds: number, nanoseconds: number }
+  if (
+    typeof d === 'object' &&
+    d !== null &&
+    'seconds' in d &&
+    typeof (d as any).seconds === 'number'
+  ) {
+    return (d as any).seconds * 1_000;
+  }
+
+  if (typeof d === 'number') return d;
+
+  if (typeof d === 'string') {
+    const parsed = Date.parse(d);
+    return isNaN(parsed) ? 0 : parsed;
+  }
+
+  // Any other shape → treat as epoch-0 so it sorts last
+  return 0;
+};
 
 export default function NewArrivalsScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const [isInteractionComplete, setIsInteractionComplete] = useState(false);
-  
+
   const { sortOption, setSortOption } = useSortContext();
   const { watches: allWatches, loading } = useWatches(searchQuery, sortOption);
   const [refreshing, setRefreshing] = useState(false);
-  const flatListRef = useRef(null);
+
+  const flatListRef = useRef<FlatList<Watch>>(null);
   const { styles: themeStyles, colors } = useThemedStyles();
-  
-  // Add a ref to track if this is the initial load (for scrolling)
   const isInitialLoadRef = useRef(true);
 
-  // Initialize on component mount
+  /*────────────────────  lifecycle  ────────────────────*/
   useEffect(() => {
     if (isInitialLoadRef.current) {
       isInitialLoadRef.current = false;
-      
-      // Defer heavy operations until after interactions
-      InteractionManager.runAfterInteractions(() => {
-        setIsInteractionComplete(true);
-      });
+      InteractionManager.runAfterInteractions(() => setIsInteractionComplete(true));
     }
-    
-    // Handle dimension changes
-    const subscription = Dimensions.addEventListener('change', () => {
-      // Allow time for layout to settle after orientation change
-      setTimeout(() => {
-        if (flatListRef.current) {
-          flatListRef.current.scrollToOffset({ animated: false, offset: 0 });
-        }
-      }, 100);
+
+    const sub = Dimensions.addEventListener('change', () => {
+      setTimeout(() => flatListRef.current?.scrollToOffset({ animated: false, offset: 0 }), 100);
     });
-    
-    return () => subscription.remove();
+    return () => sub.remove();
   }, []);
 
-  // Filter watches to include only new arrivals
+  /*────────────────────  data  ────────────────────*/
   const newArrivals = useMemo(() => {
-    return allWatches.filter(watch => 
-      watch.newArrival === true
+    return (
+      allWatches
+        .filter(w => w.newArrival)                         // keep only “New Arrival”
+        .sort((a, b) => toTimestamp(b.dateAdded) -         // newest → oldest
+          toTimestamp(a.dateAdded))
     );
   }, [allWatches]);
 
-  // Provide a fallback message when no new arrivals are found
-  const showEmptyState = !loading && (!newArrivals || newArrivals.length === 0);
+  const showEmptyState = !loading && newArrivals.length === 0;
 
+  /*────────────────────  handlers  ────────────────────*/
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
-    
-    // Simulate a reload of watch data with a delay
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 750);
+    setTimeout(() => setRefreshing(false), 750);
   }, []);
 
-  // Filter toggle callback for header
-  const handleFilterToggle = useCallback(() => {
-    setShowFilterDropdown(!showFilterDropdown);
-  }, [showFilterDropdown]);
-
-  // Handle search query changes from the header search input
-  const handleSearchChange = useCallback((query: string) => {
-    setSearchQuery(query);
-    
-    // Reset to top when search changes
-    if (flatListRef.current) {
-      flatListRef.current.scrollToOffset({ animated: true, offset: 0 });
-    }
+  const handleFilterToggle = useCallback(() => setShowFilterDropdown(prev => !prev), []);
+  const handleSearchChange = useCallback((q: string) => {
+    setSearchQuery(q);
+    flatListRef.current?.scrollToOffset({ animated: true, offset: 0 });
   }, []);
-  
-  // Filter dropdown option selection handler
+
   const handleSortSelect = useCallback(
     (option) => {
       setSortOption(option);
       setShowFilterDropdown(false);
-      
-      // Scroll to top when sort option changes
-      if (flatListRef.current) {
-        flatListRef.current.scrollToOffset({ animated: true, offset: 0 });
-      }
+      flatListRef.current?.scrollToOffset({ animated: true, offset: 0 });
     },
-    [setSortOption]
+    [setSortOption],
   );
 
-  // FlatList optimizations - memoize key extractor and item renderer
+  /*────────────────────  FlatList helpers  ────────────────────*/
   const keyExtractor = useCallback((item: Watch) => `watch-${item.id}`, []);
-
   const renderItem = useCallback(
-    ({ item }: { item: Watch }) => (
-      <MemoizedWatchCard watch={item} />
-    ),
-    []
+    ({ item }: { item: Watch }) => <MemoizedWatchCard watch={item} />,
+    [],
   );
-
-  // Calculate item layout ahead of time for better FlatList performance
   const getItemLayout = useCallback(
-    (_data: any, index: number) => ({
-      length: ITEM_HEIGHT,
-      offset: ITEM_HEIGHT * index,
-      index,
-    }),
-    []
+    (_: any, index: number) => ({ length: ITEM_HEIGHT, offset: ITEM_HEIGHT * index, index }),
+    [],
   );
 
-  // Set up viewability configuration for better rendering
-  const viewabilityConfig = useMemo(() => ({
-    itemVisiblePercentThreshold: 50,
-    minimumViewTime: 300,
-  }), []);
+  const viewabilityConfig = useMemo(
+    () => ({ itemVisiblePercentThreshold: 50, minimumViewTime: 300 }),
+    [],
+  );
+  const viewabilityConfigCallbackPairs = useRef([{ viewabilityConfig, onViewableItemsChanged: () => { } }]);
 
-  const viewabilityConfigCallbackPairs = useRef([
-    {
-      viewabilityConfig,
-      onViewableItemsChanged: ({ viewableItems, changed }) => {
-        // Optional logging to debug visibility issues
-        // console.log('Visible items:', viewableItems.map(item => item.item.id));
-      },
-    },
-  ]);
-  
-  // Handle reaching the end of the list
-  const onEndReached = useCallback(() => {
-    // Optional - implement pagination here if needed
-  }, []);
-
-  // Empty component to show when no new arrivals are found
-  const EmptyComponent = useCallback(() => (
-    <View style={styles.emptyContainer}>
-      <Text style={[styles.emptyText, { color: colors.text }]}>
-        No new arrivals found at this time.
-      </Text>
-      <Text style={[styles.emptySubText, { color: colors.lightText }]}>
-        Please check back soon for new inventory!
-      </Text>
-    </View>
-  ), [colors]);
-
+  /*────────────────────  render  ────────────────────*/
   return (
     <View style={[styles.container, themeStyles.container]}>
       <FixedHeader
-        showSearch={true}
-        showFilter={true}
+        showSearch
+        showFilter
         onSearchChange={handleSearchChange}
         searchQuery={searchQuery}
         onFilterToggle={handleFilterToggle}
-        showFavorites={true}
+        showFavorites
         currentScreen="newArrivals"
       />
 
       {showFilterDropdown && (
-        <FilterDropdown 
-          isVisible={true}
-          onSelect={handleSortSelect} 
+        <FilterDropdown
+          isVisible
+          onSelect={handleSortSelect}
           currentSelection={sortOption}
-          onClose={() => setShowFilterDropdown(false)}  
+          onClose={() => setShowFilterDropdown(false)}
         />
       )}
 
@@ -189,28 +162,20 @@ export default function NewArrivalsScreen() {
         keyExtractor={keyExtractor}
         contentContainerStyle={[
           styles.listContent,
-          showEmptyState && styles.emptyListContent
+          showEmptyState && styles.emptyListContent,
         ]}
         getItemLayout={getItemLayout}
-        windowSize={5}
-        maxToRenderPerBatch={5}
-        initialNumToRender={4}
+        windowSize={3}
+        maxToRenderPerBatch={3}
+        initialNumToRender={2}
         removeClippedSubviews={Platform.OS === 'android'}
         showsVerticalScrollIndicator={false}
         onEndReachedThreshold={0.5}
-        onEndReached={onEndReached}
         viewabilityConfigCallbackPairs={viewabilityConfigCallbackPairs.current}
-        maintainVisibleContentPosition={{
-          minIndexForVisible: 0,
-          autoscrollToTopThreshold: 10,
-        }}
-        // For Android, improve scrolling performance
+        maintainVisibleContentPosition={{ minIndexForVisible: 0, autoscrollToTopThreshold: 10 }}
         {...(Platform.OS === 'android' ? { updateCellsBatchingPeriod: 50 } : {})}
         onMomentumScrollEnd={() => {
-          // Cleanup any resources when scrolling stops
-          if (Platform.OS === 'android') {
-            if (global.gc) global.gc();
-          }
+          if (Platform.OS === 'android' && global.gc) global.gc();
         }}
         refreshControl={
           <RefreshControl
@@ -220,39 +185,29 @@ export default function NewArrivalsScreen() {
             tintColor={colors.primary}
           />
         }
-        ListEmptyComponent={showEmptyState ? EmptyComponent : null}
+        ListEmptyComponent={
+          showEmptyState ? (
+            <View style={styles.emptyContainer}>
+              <Text style={[styles.emptyText, { color: colors.text }]}>
+                No new arrivals found at this time.
+              </Text>
+              <Text style={[styles.emptySubText, { color: colors.lightText }]}>
+                Please check back soon for new inventory!
+              </Text>
+            </View>
+          ) : null
+        }
       />
     </View>
   );
 }
 
+/*────────────────────  styles  ────────────────────*/
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  listContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 20,
-  },
-  emptyListContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 32,
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: '600',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  emptySubText: {
-    fontSize: 14,
-    textAlign: 'center',
-  },
+  container: { flex: 1 },
+  listContent: { paddingHorizontal: 16, paddingBottom: 20 },
+  emptyListContent: { flexGrow: 1, justifyContent: 'center', alignItems: 'center' },
+  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
+  emptyText: { fontSize: 18, fontWeight: '600', textAlign: 'center', marginBottom: 8 },
+  emptySubText: { fontSize: 14, textAlign: 'center' },
 });

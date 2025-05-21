@@ -21,32 +21,44 @@ import { StockBadge } from "../components/StockBadge";
 import { LikeList } from "../components/LikeList";
 import { useWatches } from "../hooks/useWatches";
 import StripeCheckout from "../components/StripeCheckout";
-import Colors from '../../constants/Colors';
+import Colors from "../../constants/Colors";
 import { useTheme } from "../context/ThemeContext";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
-// Preload cache for smoother transitions
+// Pre-compile frequently used components for smoother nav
 const preloadComponentCache = () => {
-  // This forces the JS engine to compile components ahead of time
-  const StockBadgeTemp = <StockBadge />;
-  const LikeListTemp = <LikeList watchId="" initialLikes={0} />;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _dummy1 = <StockBadge />;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _dummy2 = <LikeList watchId="" initialLikes={0} />;
 };
 
-// Memoize SpecRow to prevent unnecessary rerenders
-const SpecRow = React.memo(({ label, value }: {
-  label: string;
-  value: string | null | undefined;
-}) => {
-  const { isDark } = useTheme();
-  
-  return value ? (
-    <View style={[styles.specRow, { borderBottomColor: isDark ? '#333' : '#f0f0f0' }]}>
-      <Text style={[styles.specLabel, { color: isDark ? '#aaa' : '#666' }]}>{label}</Text>
-      <Text style={[styles.specValue, { color: isDark ? '#fff' : '#002d4e' }]}>{value}</Text>
-    </View>
-  ) : null;
-});
+// Memoised specs row
+const SpecRow = React.memo(
+  ({ label, value }: { label: string; value: string | null | undefined }) => {
+    const { isDark } = useTheme();
+    return value ? (
+      <View
+        style={[
+          styles.specRow,
+          { borderBottomColor: isDark ? "#333" : "#f0f0f0" },
+        ]}
+      >
+        <Text
+          style={[styles.specLabel, { color: isDark ? "#aaa" : "#666" }]}
+        >
+          {label}
+        </Text>
+        <Text
+          style={[styles.specValue, { color: isDark ? "#fff" : "#002d4e" }]}
+        >
+          {value}
+        </Text>
+      </View>
+    ) : null;
+  }
+);
 
 export default function DetailScreen() {
   const params = useLocalSearchParams();
@@ -59,44 +71,28 @@ export default function DetailScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const { isDark } = useTheme();
 
-  // Preload cache
-  useEffect(() => {
-    preloadComponentCache();
-  }, []);
+  useEffect(preloadComponentCache, []);
 
-  // Memoize watch data with multiple comparison strategies
+  // ███████  Memoise watch record  ███████
   const watch = useMemo(() => {
     if (!watches || watches.length === 0) return null;
-
-    // Try exact match first
     let found = watches.find((w) => w.id === id);
-
-    // Then try string comparison
-    if (!found) {
-      found = watches.find((w) => String(w.id) === String(id));
-    }
-
-    // Try numeric comparison if possible
-    if (!found && !isNaN(Number(id))) {
+    if (!found) found = watches.find((w) => String(w.id) === String(id));
+    if (!found && !isNaN(Number(id)))
       found = watches.find((w) => Number(w.id) === Number(id));
-    }
-
     return found;
   }, [watches, id]);
 
-  // If watches are loaded and no matching watch is found, navigate back.
+  // Navigation guard / fade-in once found
   useEffect(() => {
-    let timeoutId: ReturnType<typeof setTimeout>;
-
-    if (!loading && watches && watches.length > 0) {
+    let to: ReturnType<typeof setTimeout>;
+    if (!loading && watches?.length) {
       if (!watch) {
         setError(`Watch not found. ID: ${id}`);
-        timeoutId = setTimeout(() => router.back(), 1500);
+        to = setTimeout(() => router.back(), 1500);
       } else {
-        // When watch is found, start a short delay before revealing content
-        timeoutId = setTimeout(() => {
+        to = setTimeout(() => {
           setContentReady(true);
-          // Fade in content smoothly
           Animated.timing(fadeAnim, {
             toValue: 1,
             duration: 300,
@@ -105,40 +101,35 @@ export default function DetailScreen() {
         }, 100);
       }
     }
-
-    return () => {
-      if (timeoutId) clearTimeout(timeoutId);
-    };
+    return () => clearTimeout(to);
   }, [loading, watches, watch, id, router, fadeAnim]);
 
   const handlePurchaseSuccess = useCallback(() => {
     setPurchaseCompleted(true);
-    // Update Firestore or perform additional actions here
+    // update backend if needed
   }, []);
 
-  // Format price and MSRP values - ensure they're available for initial render
+  // Format numbers for first render
   const { formattedPrice, formattedMSRP } = useMemo(() => {
     if (!watch) return { formattedPrice: "", formattedMSRP: "" };
     return {
-      formattedPrice: watch.price ? watch.price.toLocaleString() : "",
-      formattedMSRP: watch.msrp ? watch.msrp.toLocaleString() : ""
+      formattedPrice: watch.price?.toLocaleString() ?? "",
+      formattedMSRP: watch.msrp?.toLocaleString() ?? "",
     };
   }, [watch]);
 
-  // Memoize spec entries to avoid recalculations
+  // Build specs list once
   const specEntries = useMemo(() => {
     if (!watch) return [];
-
     return [
       { label: "Case Material", value: watch.caseMaterial },
       { label: "Diameter", value: watch.caseDiameter },
       { label: "Movement", value: watch.movement },
       {
         label: "Complications",
-        value:
-          watch.complications && watch.complications.length > 0
-            ? watch.complications.join(", ")
-            : null,
+        value: watch.complications?.length
+          ? watch.complications.join(", ")
+          : null,
       },
       { label: "Dial", value: watch.dial },
       { label: "Power Reserve", value: watch.powerReserve },
@@ -150,7 +141,8 @@ export default function DetailScreen() {
       },
       {
         label: "Papers",
-        value: watch.papers !== undefined ? (watch.papers ? "Yes" : "No") : null,
+        value:
+          watch.papers !== undefined ? (watch.papers ? "Yes" : "No") : null,
       },
       { label: "Warranty", value: watch.warranty },
       {
@@ -165,44 +157,50 @@ export default function DetailScreen() {
     ];
   }, [watch]);
 
-  // Set background and text colors based on theme
-  const bgColor = isDark ? '#121212' : Colors.headerBg;
-  const textColor = isDark ? '#fff' : '#002d4e';
-  const secondaryTextColor = isDark ? '#aaa' : '#666';
+  // Theme colours
+  const bgColor = isDark ? "#121212" : Colors.headerBg;
+  const textColor = isDark ? "#fff" : "#002d4e";
+  const secondaryTextColor = isDark ? "#aaa" : "#666";
 
-  // Use a full-page loading approach to avoid content jumping
-  if (loading || !watches || watches.length === 0 || !watch || !contentReady) {
+  // Loading / guard
+  if (
+    loading ||
+    !watches?.length ||
+    !watch ||
+    !contentReady
+  ) {
     return (
       <View style={[styles.container, { backgroundColor: bgColor }]}>
-        {/* IMPORTANT: Custom status bar background */}
         <View style={[styles.statusBarFill, { backgroundColor: bgColor }]} />
-        
         <FixedHeader showBackButton title="" />
         <View style={styles.loadingContainer}>
           {error ? (
-            <View>
-              <Text style={{ color: 'red', marginBottom: 10 }}>{error}</Text>
-              <Text style={{ color: textColor }}>Returning to previous screen...</Text>
-            </View>
+            <>
+              <Text style={{ color: "red", marginBottom: 10 }}>{error}</Text>
+              <Text style={{ color: textColor }}>
+                Returning to previous screen…
+              </Text>
+            </>
           ) : (
-            <ActivityIndicator size="large" color={isDark ? "#81b0ff" : "#002d4e"} />
+            <ActivityIndicator
+              size="large"
+              color={isDark ? "#81b0ff" : "#002d4e"}
+            />
           )}
         </View>
       </View>
     );
   }
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // MAIN RENDER
+  // ─────────────────────────────────────────────────────────────────────────
   return (
     <View style={[styles.container, { backgroundColor: bgColor }]}>
-      {/* IMPORTANT: Custom status bar background */}
       <View style={[styles.statusBarFill, { backgroundColor: bgColor }]} />
-      
       <FixedHeader showBackButton watch={watch} />
 
-      <Animated.View style={{
-        flex: 1,
-        opacity: fadeAnim,
-      }}>
+      <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
@@ -210,58 +208,96 @@ export default function DetailScreen() {
         >
           <SecondaryCard watch={watch} />
 
-          <BlurView intensity={30} tint={isDark ? "dark" : "light"} style={styles.detailsPanel}>
+          <BlurView
+            intensity={30}
+            tint={isDark ? "dark" : "light"}
+            style={styles.detailsPanel}
+          >
             <View style={styles.headerSection}>
-              {/* Brand & LikeList Container with original positioning */}
+              {/* Brand & likes */}
               <View style={styles.brandLikeContainer}>
                 <View style={styles.brandContainer}>
-                  {watch.brand === "Vacheron Constantin" ? (
-                    <Text style={[styles.brandSmaller, { color: textColor }]} numberOfLines={1} ellipsizeMode="tail">
+                  {/* ▼▼▼ NEW: small style also for Van Cleef & Arpels ▼▼▼ */}
+                  {["Vacheron Constantin", "Van Cleef & Arpels", "Van Cleef and Arpels"].includes(
+                    watch.brand ?? ""
+                  ) ? (
+                    <Text
+                      style={[styles.brandSmaller, { color: textColor }]}
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                    >
                       {watch.brand}
                     </Text>
                   ) : (
-                    <Text style={[styles.brand, { color: textColor }]} numberOfLines={1} ellipsizeMode="tail">
-                      {watch.brand || " "}
+                    <Text
+                      style={[styles.brand, { color: textColor }]}
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                    >
+                      {watch.brand ?? " "}
                     </Text>
                   )}
                 </View>
 
                 <View style={styles.likeListContainer}>
-                  <LikeList watchId={watch.id} initialLikes={watch.likes || 0} />
+                  <LikeList
+                    watchId={watch.id}
+                    initialLikes={watch.likes ?? 0}
+                  />
                 </View>
               </View>
 
-              <Text style={[styles.model, { color: textColor }]}>{watch.model || " "}</Text>
+              <Text style={[styles.model, { color: textColor }]}>
+                {watch.model ?? " "}
+              </Text>
+
               <View style={styles.infoContainer}>
                 {watch.referenceNumber && (
-                  <Text style={[styles.referenceNumber, { color: secondaryTextColor }]}>
+                  <Text
+                    style={[
+                      styles.referenceNumber,
+                      { color: secondaryTextColor },
+                    ]}
+                  >
                     Ref. {watch.referenceNumber}
                   </Text>
                 )}
                 {watch.sku && (
-                  <Text style={[styles.referenceNumber, { color: secondaryTextColor }]}>
+                  <Text
+                    style={[
+                      styles.referenceNumber,
+                      { color: secondaryTextColor },
+                    ]}
+                  >
                     SKU: {watch.sku}
                   </Text>
                 )}
               </View>
+
               <View style={styles.stockPriceContainer}>
                 <View style={styles.stockBadgeWrapper}>
                   <StockBadge />
                 </View>
+
                 <View style={styles.priceContainer}>
-                  {/* Fixed MSRP display */}
                   {watch.msrp ? (
                     <View style={styles.msrpContainer}>
-                      <Text style={[styles.msrpLabel, { color: textColor }]}>MSRP: </Text>
-                      <Text style={[styles.msrpValue, { color: textColor }]}>${formattedMSRP}</Text>
+                      <Text style={[styles.msrpLabel, { color: textColor }]}>
+                        MSRP:{" "}
+                      </Text>
+                      <Text style={[styles.msrpValue, { color: textColor }]}>
+                        ${formattedMSRP}
+                      </Text>
                     </View>
                   ) : null}
-                  {/* Fixed price display */}
-                  <Text style={[styles.price, { color: textColor }]}>${formattedPrice}</Text>
+                  <Text style={[styles.price, { color: textColor }]}>
+                    ${formattedPrice}
+                  </Text>
                 </View>
               </View>
             </View>
 
+            {/* Buttons */}
             <View style={styles.buttonRow}>
               <View style={styles.buttonWrapper}>
                 <TradeButton watch={watch} />
@@ -271,17 +307,27 @@ export default function DetailScreen() {
               </View>
             </View>
 
+            {/* Specs */}
             <View style={styles.specsContainer}>
-              {specEntries.map((spec, index) => (
-                <SpecRow key={index} label={spec.label} value={spec.value} />
+              {specEntries.map((spec, i) => (
+                <SpecRow key={i} label={spec.label} value={spec.value} />
               ))}
             </View>
           </BlurView>
 
+          {/* Description */}
           {watch.description && (
             <View style={styles.descriptionContainer}>
-              <Text style={[styles.descriptionLabel, { color: textColor }]}>Description</Text>
-              <Text style={[styles.descriptionText, { color: textColor }]}>{watch.description}</Text>
+              <Text
+                style={[styles.descriptionLabel, { color: textColor }]}
+              >
+                Description
+              </Text>
+              <Text
+                style={[styles.descriptionText, { color: textColor }]}
+              >
+                {watch.description}
+              </Text>
             </View>
           )}
 
@@ -293,10 +339,16 @@ export default function DetailScreen() {
         </ScrollView>
       </Animated.View>
 
-      <View style={[styles.bottomContainer, { 
-        backgroundColor: isDark ? '#222' : '#fff',
-        borderTopColor: isDark ? '#333' : '#eee' 
-      }]}>
+      {/* Checkout / sold banner */}
+      <View
+        style={[
+          styles.bottomContainer,
+          {
+            backgroundColor: isDark ? "#222" : "#fff",
+            borderTopColor: isDark ? "#333" : "#eee",
+          },
+        ]}
+      >
         {purchaseCompleted || watch.sold ? (
           <View style={[styles.stripeButton, styles.soldButton]}>
             <Text style={styles.stripeButtonText}>Sold</Text>
@@ -317,29 +369,28 @@ export default function DetailScreen() {
   );
 }
 
+// ─────────────────────────────────────────────────────────────────────────
+// STYLES
+// ─────────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.headerBg,
-  },
-  // NEW: Custom status bar fill view
+  container: { flex: 1, backgroundColor: Colors.headerBg },
   statusBarFill: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
-    height: Platform.OS === 'ios' ? 50 : StatusBar.currentHeight,
+    height: Platform.OS === "ios" ? 50 : StatusBar.currentHeight,
     backgroundColor: Colors.headerBg,
-    zIndex: 10
+    zIndex: 10,
   },
-  scrollContent: {
-    paddingBottom: 140,
-  },
+  scrollContent: { paddingBottom: 140 },
+
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
-    alignItems: "center"
+    alignItems: "center",
   },
+
   detailsPanel: {
     marginTop: -20,
     padding: 28,
@@ -348,6 +399,7 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     marginBottom: 16,
   },
+
   descriptionContainer: { paddingHorizontal: 16, marginBottom: 16 },
   descriptionLabel: {
     fontSize: 16,
@@ -356,41 +408,36 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   descriptionText: { fontSize: 15, color: "#002d4e", lineHeight: 22 },
-  headerSection: {
-    marginBottom: 32,
-    paddingTop: 8,
-  },
-  /* BRAND & LIKELIST - Maintaining original positioning */
+
+  headerSection: { marginBottom: 32, paddingTop: 8 },
   brandLikeContainer: {
-    position: 'relative',
+    position: "relative",
     marginBottom: 4,
-    height: 40, // Fixed height prevents layout shift
+    height: 40,
   },
-  brandContainer: {
-    width: '100%',
-    paddingRight: 60, // Make space for the like list on the right
-  },
+  brandContainer: { width: "100%", paddingRight: 60 },
   brand: {
     fontSize: 30,
-    fontWeight: "600", // Changed from "700" to "500" to make it lighter
+    fontWeight: "600",
     color: "#002d4e",
     letterSpacing: 0.2,
-    width: '100%',
+    width: "100%",
   },
   brandSmaller: {
-    fontSize: 24, // Smaller font size specifically for Vacheron Constantin
-    fontWeight: "500", // Changed from "700" to "500" to make it lighter
+    fontSize: 24,
+    fontWeight: "500",
     color: "#002d4e",
     letterSpacing: -0.5,
-    width: '100%',
+    width: "100%",
   },
   likeListContainer: {
-    position: 'absolute',
+    position: "absolute",
     right: 0,
     top: 0,
     zIndex: 1,
-    alignItems: 'flex-end',
+    alignItems: "flex-end",
   },
+
   model: {
     fontSize: 18,
     fontWeight: "400",
@@ -401,38 +448,32 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     lineHeight: 24,
   },
-  infoContainer: {
-    marginBottom: 12,
-    minHeight: 22, // Ensure consistent height even when empty
-  },
+  infoContainer: { marginBottom: 12, minHeight: 22 },
   referenceNumber: {
     fontSize: 13,
     color: "#666",
     fontWeight: "400",
     marginBottom: 4,
   },
-  /* STOCK & PRICE - UPDATED FOR PROPER ALIGNMENT */
+
   stockPriceContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 14,
     marginTop: -9,
-    height: 40, // Fixed height prevents layout shifts
+    height: 40,
   },
   stockBadgeWrapper: { width: SCREEN_WIDTH * 0.3, overflow: "hidden" },
+
   priceContainer: {
     flex: 1,
     flexDirection: "column",
     alignItems: "flex-end",
     justifyContent: "center",
-    height: 40, // Fixed height to match container
+    height: 40,
   },
-  msrpContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 2,
-  },
+  msrpContainer: { flexDirection: "row", alignItems: "center", marginBottom: 2 },
   msrpLabel: { fontSize: 14, color: "#002d4e", opacity: 0.8 },
   msrpValue: {
     fontSize: 14,
@@ -446,20 +487,20 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#002d4e",
     letterSpacing: -0.3,
-    height: 24, // Fixed height for consistency
-    textAlign: "right", // Ensure price is right-aligned
-    alignSelf: "flex-end", // Keep price at the right edge
+    height: 24,
+    textAlign: "right",
+    alignSelf: "flex-end",
   },
-  /* BUTTON ROW */
+
   buttonRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     marginBottom: 32,
     marginHorizontal: -12,
-    height: 48, // Fixed height for the buttons
+    height: 48,
   },
   buttonWrapper: { flex: 1, marginHorizontal: 8, marginVertical: -34 },
-  /* SPECS */
+
   specsContainer: { marginTop: 20, paddingHorizontal: 3 },
   specRow: {
     gap: 12,
@@ -469,16 +510,14 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#f0f0f0",
   },
-  specLabel: { fontSize: 15, color: "#666", letterSpacing: -0.2, width: 120 },
+  specLabel: { fontSize: 15, color: "#666", width: 120 },
   specValue: {
     fontSize: 15,
     color: "#002d4e",
     fontWeight: "500",
-    letterSpacing: -0.2,
     flex: 1,
-    marginLeft: 0,
   },
-  /* FOOTER */
+
   footerContainer: { paddingVertical: 20, paddingHorizontal: 16 },
   footerText: {
     fontSize: 15,
@@ -488,7 +527,7 @@ const styles = StyleSheet.create({
     fontWeight: "300",
     textTransform: "uppercase",
   },
-  /* BOTTOM CONTAINER */
+
   bottomContainer: {
     position: "absolute",
     bottom: 0,

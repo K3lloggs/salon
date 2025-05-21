@@ -1,11 +1,10 @@
 import React from 'react';
 import {
-  ScrollView,
+  View,
   TouchableOpacity,
   StyleSheet,
   Linking,
   Text,
-  View,
   Switch,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,24 +16,20 @@ import { useTheme } from '../context/ThemeContext';
 export default function MoreScreen() {
   const { isDark, toggleTheme } = useTheme();
 
-  // Function to handle Instagram linking
+  // Instagram
   const handleInstagramPress = () => {
     const instagramAppUrl = 'instagram://user?username=shrevecrumplow';
     const instagramWebUrl = 'https://www.instagram.com/shrevecrumplow/#';
     Linking.canOpenURL(instagramAppUrl)
       .then((supported) => {
-        if (supported) {
-          Linking.openURL(instagramAppUrl);
-        } else {
-          Linking.openURL(instagramWebUrl);
-        }
+        Linking.openURL(supported ? instagramAppUrl : instagramWebUrl);
       })
       .catch((err) =>
         console.error('An error occurred while trying to open Instagram', err)
       );
   };
 
-  // Function to handle Facebook linking
+  // Facebook
   const handleFacebookPress = () => {
     const facebookAppUrl =
       'fb://facewebmodal/f?href=https://www.facebook.com/shrevecrumpandlowboston/';
@@ -42,35 +37,27 @@ export default function MoreScreen() {
       'https://www.facebook.com/shrevecrumpandlowboston/';
     Linking.canOpenURL(facebookAppUrl)
       .then((supported) => {
-        if (supported) {
-          Linking.openURL(facebookAppUrl);
-        } else {
-          Linking.openURL(facebookWebUrl);
-        }
+        Linking.openURL(supported ? facebookAppUrl : facebookWebUrl);
       })
       .catch((err) =>
         console.error('An error occurred while trying to open Facebook', err)
       );
   };
 
-  // Function to handle YouTube linking
+  // YouTube
   const handleYoutubePress = () => {
     const youtubeAppUrl = 'youtube://www.youtube.com/@shrevecrumplow';
     const youtubeWebUrl = 'https://www.youtube.com/@shrevecrumplow';
     Linking.canOpenURL(youtubeAppUrl)
       .then((supported) => {
-        if (supported) {
-          Linking.openURL(youtubeAppUrl);
-        } else {
-          Linking.openURL(youtubeWebUrl);
-        }
+        Linking.openURL(supported ? youtubeAppUrl : youtubeWebUrl);
       })
       .catch((err) =>
         console.error('An error occurred while trying to open YouTube', err)
       );
   };
 
-  // Function to handle App Store review link
+  // App Store review link
   const handleRateAppPress = () => {
     Linking.openURL(
       'https://apps.apple.com/us/app/watch-scl/id6743322357?action=write-review'
@@ -78,45 +65,65 @@ export default function MoreScreen() {
   };
 
   return (
-    <ScrollView style={[
-      styles.container, 
-      { backgroundColor: isDark ? '#000' : Colors.offWhite }
-    ]}>
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: isDark ? '#000' : Colors.offWhite },
+      ]}
+    >
       <FixedHeader />
 
       {/* Information */}
       <View style={styles.section}>
-        <Text style={[
-          styles.sectionTitle, 
-          { color: isDark ? '#fff' : Colors.primaryBlue }
-        ]}>Information</Text>
+        <Text
+          style={[
+            styles.sectionTitle,
+            { color: isDark ? '#fff' : Colors.primaryBlue },
+          ]}
+        >
+          Information
+        </Text>
         <Link href="/about" asChild>
           <TouchableOpacity style={styles.menuItem}>
-            <Text style={[
-              styles.menuText,
-              { color: isDark ? '#fff' : '#1a1a1a' }
-            ]}>About</Text>
-            <Ionicons name="chevron-forward" size={20} color={isDark ? "#fff" : "#002d4e"} />
+            <Text
+              style={[
+                styles.menuText,
+                { color: isDark ? '#fff' : '#1a1a1a' },
+              ]}
+            >
+              About
+            </Text>
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={isDark ? '#fff' : '#002d4e'}
+            />
           </TouchableOpacity>
         </Link>
       </View>
 
       {/* Follow Us */}
       <View style={styles.section}>
-        <Text style={[
-          styles.sectionTitle, 
-          { color: isDark ? '#fff' : Colors.primaryBlue }
-        ]}>Follow Us</Text>
-        <TouchableOpacity
-          style={styles.menuItem}
-          onPress={handleInstagramPress}
+        <Text
+          style={[
+            styles.sectionTitle,
+            { color: isDark ? '#fff' : Colors.primaryBlue },
+          ]}
         >
+          Follow Us
+        </Text>
+
+        <TouchableOpacity style={styles.menuItem} onPress={handleInstagramPress}>
           <View style={styles.leftContainer}>
             <View style={styles.textContainer}>
-              <Text style={[
-                styles.menuText,
-                { color: isDark ? '#fff' : '#1a1a1a' }
-              ]}>Instagram</Text>
+              <Text
+                style={[
+                  styles.menuText,
+                  { color: isDark ? '#fff' : '#1a1a1a' },
+                ]}
+              >
+                Instagram
+              </Text>
             </View>
             <Ionicons
               name="logo-instagram"
@@ -125,18 +132,24 @@ export default function MoreScreen() {
               style={styles.socialIcon}
             />
           </View>
-          <Ionicons name="chevron-forward" size={20} color={isDark ? "#fff" : "#002d4e"} />
+          <Ionicons
+            name="chevron-forward"
+            size={20}
+            color={isDark ? '#fff' : '#002d4e'}
+          />
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.menuItem}
-          onPress={handleFacebookPress}
-        >
+
+        <TouchableOpacity style={styles.menuItem} onPress={handleFacebookPress}>
           <View style={styles.leftContainer}>
             <View style={styles.textContainer}>
-              <Text style={[
-                styles.menuText,
-                { color: isDark ? '#fff' : '#1a1a1a' }
-              ]}>Facebook</Text>
+              <Text
+                style={[
+                  styles.menuText,
+                  { color: isDark ? '#fff' : '#1a1a1a' },
+                ]}
+              >
+                Facebook
+              </Text>
             </View>
             <Ionicons
               name="logo-facebook"
@@ -145,18 +158,24 @@ export default function MoreScreen() {
               style={styles.socialIcon}
             />
           </View>
-          <Ionicons name="chevron-forward" size={20} color={isDark ? "#fff" : "#002d4e"} />
+          <Ionicons
+            name="chevron-forward"
+            size={20}
+            color={isDark ? '#fff' : '#002d4e'}
+          />
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.menuItem}
-          onPress={handleYoutubePress}
-        >
+
+        <TouchableOpacity style={styles.menuItem} onPress={handleYoutubePress}>
           <View style={styles.leftContainer}>
             <View style={styles.textContainer}>
-              <Text style={[
-                styles.menuText,
-                { color: isDark ? '#fff' : '#1a1a1a' }
-              ]}>YouTube</Text>
+              <Text
+                style={[
+                  styles.menuText,
+                  { color: isDark ? '#fff' : '#1a1a1a' },
+                ]}
+              >
+                YouTube
+              </Text>
             </View>
             <Ionicons
               name="logo-youtube"
@@ -165,46 +184,62 @@ export default function MoreScreen() {
               style={styles.socialIcon}
             />
           </View>
-          <Ionicons name="chevron-forward" size={20} color={isDark ? "#fff" : "#002d4e"} />
+          <Ionicons
+            name="chevron-forward"
+            size={20}
+            color={isDark ? '#fff' : '#002d4e'}
+          />
         </TouchableOpacity>
       </View>
 
       {/* App */}
       <View style={styles.section}>
-        <Text style={[
-          styles.sectionTitle, 
-          { color: isDark ? '#fff' : Colors.primaryBlue }
-        ]}>App</Text>
-        <TouchableOpacity
-          style={styles.menuItem}
-          onPress={handleRateAppPress}
+        <Text
+          style={[
+            styles.sectionTitle,
+            { color: isDark ? '#fff' : Colors.primaryBlue },
+          ]}
         >
-          <Text style={[
-            styles.menuText,
-            { color: isDark ? '#fff' : '#1a1a1a' }
-          ]}>Rate the App</Text>
-          <Ionicons name="chevron-forward" size={20} color={isDark ? "#fff" : "#002d4e"} />
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={styles.menuItem}
-        >
-          <View style={styles.leftContainer}>
-            <Text style={[
+          App
+        </Text>
+
+        <TouchableOpacity style={styles.menuItem} onPress={handleRateAppPress}>
+          <Text
+            style={[
               styles.menuText,
-              { color: isDark ? '#fff' : '#1a1a1a' }
-            ]}>Dark Mode</Text>
+              { color: isDark ? '#fff' : '#1a1a1a' },
+            ]}
+          >
+            Rate the App
+          </Text>
+          <Ionicons
+            name="chevron-forward"
+            size={20}
+            color={isDark ? '#fff' : '#002d4e'}
+          />
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.menuItem}>
+          <View style={styles.leftContainer}>
+            <Text
+              style={[
+                styles.menuText,
+                { color: isDark ? '#fff' : '#1a1a1a' },
+              ]}
+            >
+              Dark Mode
+            </Text>
           </View>
           <Switch
-            trackColor={{ false: "#767577", true: "#81b0ff" }}
-            thumbColor={isDark ? "#fff" : "#f4f3f4"}
+            trackColor={{ false: '#767577', true: '#81b0ff' }}
+            thumbColor={isDark ? '#fff' : '#f4f3f4'}
             ios_backgroundColor="#3e3e3e"
             onValueChange={toggleTheme}
             value={isDark}
           />
         </TouchableOpacity>
       </View>
-    </ScrollView>
+    </View>
   );
 }
 
